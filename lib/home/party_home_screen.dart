@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'party_theme.dart';
+import '../settings/settings_screen.dart';
 
 class PartyHomeScreen extends StatelessWidget {
   const PartyHomeScreen({super.key});
@@ -408,7 +409,6 @@ class _GameCard extends StatelessWidget {
   }
 }
 
-/// SIMPLE BOTTOM NAV (stub)
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
@@ -420,9 +420,17 @@ class _BottomNavBar extends StatelessWidget {
       selectedItemColor: PartyColors.accentPink,
       unselectedItemColor: PartyColors.textSecondary,
       showUnselectedLabels: true,
-      currentIndex: 0,
+
       onTap: (index) {
-        // stub for now
+        if (index == 2) {
+          // ✅ SETTINGS TAB
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+          );
+          return;
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Tab $index not wired yet."),
@@ -430,6 +438,7 @@ class _BottomNavBar extends StatelessWidget {
           ),
         );
       },
+
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
         BottomNavigationBarItem(

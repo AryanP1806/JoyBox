@@ -28,7 +28,10 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  vibration: ^2.0.1
   audioplayers: ^6.0.0
+  confetti: ^0.8.0
+  vector_math: ^2.1.4
   flutter:
     sdk: flutter
 
@@ -59,6 +62,7 @@ flutter:
   assets:
     - assets/icon/
     - assets/sounds/
+    - assets/images/
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

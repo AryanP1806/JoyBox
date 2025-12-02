@@ -5,6 +5,7 @@ import '../../theme/party_theme.dart';
 import '../../widgets/party_button.dart';
 import '../../widgets/party_card.dart';
 import '../../audio/sound_manager.dart';
+import '../../widgets/physics_spin_bottle.dart';
 
 import 'truth_dare_models.dart';
 import 'truth_dare_packs.dart';
@@ -108,7 +109,7 @@ class _TruthDareGameScreenState extends State<TruthDareGameScreen>
     SoundManager.playTap();
     currentChoice = TruthOrDareChoice.truth;
     currentQuestion = truthList[rand.nextInt(truthList.length)];
-    _flipController.forward();
+    // _flipController.forward();
     setState(() {});
   }
 
@@ -116,7 +117,7 @@ class _TruthDareGameScreenState extends State<TruthDareGameScreen>
     SoundManager.playTap();
     currentChoice = TruthOrDareChoice.dare;
     currentQuestion = dareList[rand.nextInt(dareList.length)];
-    _flipController.forward();
+    // _flipController.forward();
     setState(() {});
   }
 
@@ -186,6 +187,12 @@ class _TruthDareGameScreenState extends State<TruthDareGameScreen>
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            PhysicsSpinBottle(
+              onSpinEnd: () {
+                _selectNextPlayer(); // ✅ Sync bottle stop → player selection
+              },
+            ),
+
             Text(
               "It's ${player.name}'s Turn",
               style: const TextStyle(
