@@ -37,11 +37,52 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
     super.dispose();
   }
 
+  // ✅ HOW TO PLAY POPUP
+  void _showHowToPlay() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("How to Play Truth or Dare"),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("• Players take turns randomly or via spin bottle."),
+              SizedBox(height: 6),
+              Text("• Choose Truth or Dare."),
+              SizedBox(height: 6),
+              Text("• Truth = +1 point, Dare = +1 point."),
+              SizedBox(height: 6),
+              Text("• Failed = -1 point."),
+              SizedBox(height: 6),
+              Text("• Skip behavior depends on setup."),
+              SizedBox(height: 6),
+              Text("• Game ends when you press STOP."),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: Navigator.of(context).pop,
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _startGame() {
     final names = List.generate(playerCount, (i) {
       final txt = _nameControllers[i].text.trim();
       return txt.isEmpty ? 'Player ${i + 1}' : txt;
     });
+
+    if (names.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("At least 2 players required")),
+      );
+      return;
+    }
 
     final config = TruthDareGameConfig(
       playerCount: playerCount,
@@ -64,7 +105,15 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Truth or Dare Setup")),
+      appBar: AppBar(
+        title: const Text("Truth or Dare Setup"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: _showHowToPlay,
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

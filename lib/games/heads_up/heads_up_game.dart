@@ -2,7 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:vibration/vibration.dart';
 
+// Assuming these exist in your project structure
 import 'heads_up_models.dart';
 import 'heads_up_results.dart';
 
@@ -17,7 +20,8 @@ class HeadsUpGameScreen extends StatefulWidget {
   State<HeadsUpGameScreen> createState() => _HeadsUpGameScreenState();
 }
 
-class _HeadsUpGameScreenState extends State<HeadsUpGameScreen> {
+class _HeadsUpGameScreenState extends State<HeadsUpGameScreen>
+    with SingleTickerProviderStateMixin {
   late List<String> _wordPool;
   String? _currentWord;
 
@@ -25,33 +29,48 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen> {
   int _timeLeft = 0;
 
   Timer? _timer;
-  StreamSubscription<GyroscopeEvent>? _gyroSub;
+
+  // CHANGED: Using Accelerometer instead of Gyroscope
+  StreamSubscription<AccelerometerEvent>? _accelSub;
 
   HeadsUpTilt _currentTilt = HeadsUpTilt.neutral;
   bool _cooldown = false;
 
-  // ✅ ACCUMULATED ROTATION (THIS IS THE KEY)
-  double _rotationAccumulator = 0;
-
   final List<String> _correctWords = [];
   final List<String> _passedWords = [];
+
+  late AnimationController _cardAnim;
+  late Animation<double> _scaleAnim;
+
+  final AudioPlayer _player = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
 
-    // ✅ FORCE LANDSCAPE MODE
+    // Lock to landscape for the game
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
 
+    _cardAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+
+    _scaleAnim = Tween(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(parent: _cardAnim, curve: Curves.easeOut));
+
     _timeLeft = widget.config.durationSeconds;
-    _wordPool = widget.config.getShuffledWords();
+    _wordPool = List<String>.from(widget.config.getShuffledWords());
+    _wordPool.shuffle();
 
     _nextWord();
     _startTimer();
-    _startGyroscope();
+    _startAccelerometer(); // CHANGED: Start the new sensor logic
   }
 
   // ---------------- TIMER ----------------
@@ -62,7 +81,6 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen> {
       setState(() {
         _timeLeft--;
         if (_timeLeft <= 0) {
-          _timeLeft = 0;
           t.cancel();
           _endGame();
         }
@@ -70,30 +88,29 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen> {
     });
   }
 
-  // ---------------- GYROSCOPE ----------------
+  // ---------------- ACCELEROMETER (Gravity) ----------------
+  // This replaces the entire Gyroscope section.
 
-  void _startGyroscope() {
-    _gyroSub = gyroscopeEvents.listen((event) {
+  void _startAccelerometer() {
+    _accelSub = accelerometerEvents.listen((event) {
       final tilt = _classifyTilt(event);
       _handleTilt(tilt);
     });
   }
 
-  // ✅ REAL ROTATIONAL TILT DETECTION
-  HeadsUpTilt _classifyTilt(GyroscopeEvent e) {
-    // Rotation around X axis = forward/back forehead tilt
-    const double rotationThreshold = 1.4;
+  HeadsUpTilt _classifyTilt(AccelerometerEvent e) {
+    // Z-axis detects if the screen is facing Up (Sky) or Down (Floor).
+    // ~9.8 is facing up, -9.8 is facing down, 0 is vertical.
+    // We use a threshold of 7.0 to ensure a clear, intentional tilt (~45 degrees).
 
-    // ✅ Integrate rotation over time
-    _rotationAccumulator += e.x;
+    const double threshold = 7.0;
 
-    // ✅ HARD LIMITS
-    if (_rotationAccumulator > rotationThreshold) {
-      _rotationAccumulator = 0;
-      return HeadsUpTilt.correct; // forward tilt
-    } else if (_rotationAccumulator < -rotationThreshold) {
-      _rotationAccumulator = 0;
-      return HeadsUpTilt.pass; // backward tilt
+    if (e.z < -threshold) {
+      // Screen facing floor -> Correct
+      return HeadsUpTilt.correct;
+    } else if (e.z > threshold) {
+      // Screen facing ceiling -> Pass
+      return HeadsUpTilt.pass;
     } else {
       return HeadsUpTilt.neutral;
     }
@@ -102,6 +119,7 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen> {
   void _handleTilt(HeadsUpTilt newTilt) {
     if (_cooldown) return;
 
+    // Trigger only when moving FROM neutral TO a state (prevents accidental double triggers)
     if (_currentTilt == HeadsUpTilt.neutral &&
         (newTilt == HeadsUpTilt.correct || newTilt == HeadsUpTilt.pass)) {
       _cooldown = true;
@@ -112,10 +130,11 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen> {
         _onPass();
       }
 
-      // ✅ STRONG COOLDOWN – NO DOUBLE TRIGGERS
+      // Short delay to prevent rapid-fire triggering while bringing phone back up
       Future.delayed(const Duration(milliseconds: 1200), () {
-        if (!mounted) return;
-        _cooldown = false;
+        if (mounted) {
+          _cooldown = false;
+        }
       });
     }
 
@@ -125,23 +144,44 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen> {
   // ---------------- GAME ACTIONS ----------------
 
   void _onCorrect() {
+    // 1. Logic updates FIRST
     if (_currentWord != null) {
       _correctWords.add(_currentWord!);
       _score++;
     }
+
+    // 2. Visual updates immediately (UI feels responsive)
     _nextWord();
+    _cardAnim.forward().then((_) => _cardAnim.reverse());
+
+    // 3. Audio/Haptics in BACKGROUND (No 'await')
+    _player.play(AssetSource("sounds/correct.mp3"));
+    Vibration.hasVibrator().then((has) {
+      if (has == true) Vibration.vibrate(duration: 80);
+    });
   }
 
   void _onPass() {
+    // 1. Logic
     if (_currentWord != null) {
       _passedWords.add(_currentWord!);
     }
+
+    // 2. Visuals
     _nextWord();
+
+    // 3. Audio/Haptics (No 'await')
+    _player.play(AssetSource("sounds/pass.mp3"));
+    Vibration.hasVibrator().then((has) {
+      if (has == true) Vibration.vibrate(duration: 40);
+    });
   }
 
   void _nextWord() {
-    if (_wordPool.isEmpty) {
-      _wordPool = widget.config.getShuffledWords();
+    // Refill pool if empty
+    if (_wordPool.length <= 1) {
+      _wordPool = List<String>.from(widget.config.getShuffledWords());
+      _wordPool.shuffle();
     }
 
     setState(() {
@@ -151,9 +191,9 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen> {
 
   void _endGame() {
     _timer?.cancel();
-    _gyroSub?.cancel();
+    _accelSub?.cancel();
 
-    // ✅ RESTORE NORMAL ORIENTATION
+    // Reset orientation
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
 
     Navigator.pushReplacement(
@@ -173,82 +213,122 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _gyroSub?.cancel();
-
-    // ✅ SAFETY RESET
+    _accelSub?.cancel(); // Cancel the accelerometer subscription
+    _cardAnim.dispose();
+    _player.dispose();
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-
     super.dispose();
   }
 
-  // ---------------- UI ----------------
+  // ---------------- PREMIUM UI ----------------
 
   @override
   Widget build(BuildContext context) {
-    final word = _currentWord ?? "Ready";
+    final word = _currentWord ?? "READY";
 
     return Scaffold(
       body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: Colors.black,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.black, Color(0xFF0F2027)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         padding: const EdgeInsets.all(30),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // ✅ TOP BAR
+            // ✅ NEON TOP BAR
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Time: $_timeLeft",
-                  style: const TextStyle(fontSize: 22, color: Colors.white),
-                ),
-                Text(
-                  "Score: $_score",
-                  style: const TextStyle(fontSize: 22, color: Colors.white),
-                ),
-              ],
+              children: [_neonText("⏳ $_timeLeft"), _neonText("🔥 $_score")],
             ),
 
-            // ✅ WORD CENTER
-            Expanded(
-              child: Center(
+            const Spacer(),
+
+            // ✅ ANIMATED WORD CARD
+            ScaleTransition(
+              scale: _scaleAnim,
+              child: Container(
+                width: double.infinity, // Ensure full width usage
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 30,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.cyan, blurRadius: 25),
+                  ],
+                  border: Border.all(
+                    color: Colors.cyan.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
                 child: Text(
                   word,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 48,
+                    fontSize: 48, // Slightly larger for better visibility
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
+                    letterSpacing: 2,
                   ),
                 ),
               ),
             ),
 
-            // ✅ INSTRUCTIONS
+            const Spacer(),
+
             const Text(
-              "Tilt FORWARD = CORRECT\nTilt BACKWARD = PASS",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, color: Colors.white70),
+              "TILT DOWN = ✅   /   TILT UP = ❌",
+              style: TextStyle(
+                color: Colors.cyanAccent,
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+              ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
 
-            // ✅ BACKUP BUTTONS (ALWAYS KEEP THESE)
+            // ✅ BACKUP BUTTONS
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(onPressed: _onPass, child: const Text("Pass")),
-                ElevatedButton(
-                  onPressed: _onCorrect,
-                  child: const Text("Correct"),
-                ),
+                _gameButton("PASS", Colors.redAccent, _onPass),
+                _gameButton("CORRECT", Colors.greenAccent, _onCorrect),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _neonText(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+        color: Colors.cyanAccent,
+        shadows: [Shadow(color: Colors.cyanAccent, blurRadius: 10)],
+      ),
+    );
+  }
+
+  Widget _gameButton(String label, Color color, VoidCallback onTap) {
+    return ElevatedButton(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.2),
+        foregroundColor: color,
+        side: BorderSide(color: color),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      child: Text(label),
     );
   }
 }
