@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'truth_dare_models.dart';
 import 'truth_dare_game_screen.dart';
 import 'truth_dare_custom_words_screen.dart';
@@ -37,34 +36,36 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
     super.dispose();
   }
 
-  // ✅ HOW TO PLAY POPUP
+  // ✅ HOW TO PLAY
   void _showHowToPlay() {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("How to Play Truth or Dare"),
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "How to Play Truth or Dare",
+          style: TextStyle(color: Colors.white),
+        ),
         content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("• Players take turns randomly or via spin bottle."),
-              SizedBox(height: 6),
-              Text("• Choose Truth or Dare."),
-              SizedBox(height: 6),
-              Text("• Truth = +1 point, Dare = +1 point."),
-              SizedBox(height: 6),
-              Text("• Failed = -1 point."),
-              SizedBox(height: 6),
-              Text("• Skip behavior depends on setup."),
-              SizedBox(height: 6),
-              Text("• Game ends when you press STOP."),
-            ],
+          child: Text(
+            "🎯 GAME FLOW\n"
+            "• One player is selected.\n"
+            "• Choose TRUTH or DARE.\n\n"
+            "💎 SCORING\n"
+            "• Success = +1 point\n"
+            "• Failure = -1 point\n\n"
+            "⏭ SKIPS\n"
+            "• Depends on skip mode.\n\n"
+            "🏁 GAME END\n"
+            "• Game ends when you press STOP.\n",
+            style: TextStyle(color: Colors.white70, height: 1.5),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: Navigator.of(context).pop,
-            child: const Text("OK"),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Got it"),
           ),
         ],
       ),
@@ -76,13 +77,6 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
       final txt = _nameControllers[i].text.trim();
       return txt.isEmpty ? 'Player ${i + 1}' : txt;
     });
-
-    if (names.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("At least 2 players required")),
-      );
-      return;
-    }
 
     final config = TruthDareGameConfig(
       playerCount: playerCount,
@@ -105,239 +99,299 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Truth or Dare Setup"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: _showHowToPlay,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF23074D), Color(0xFFCC5333)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // ------------ PLAYER COUNT ------------
-            Row(
-              children: [
-                const Text(
-                  "Players:",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: playerCount > 2
-                      ? () => setState(() => playerCount--)
-                      : null,
-                  icon: const Icon(Icons.remove),
-                ),
-                Text("$playerCount", style: const TextStyle(fontSize: 18)),
-                IconButton(
-                  onPressed: playerCount < maxPlayers
-                      ? () => setState(() => playerCount++)
-                      : null,
-                  icon: const Icon(Icons.add),
-                ),
-              ],
-            ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
 
-            const SizedBox(height: 10),
-
-            // ------------ PLAYER NAMES ------------
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Player Names (optional)",
-                style: TextStyle(fontWeight: FontWeight.bold),
+              // ✅ HEADER
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "TRUTH OR DARE",
+                      style: TextStyle(
+                        letterSpacing: 3,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _showHowToPlay,
+                      icon: const Icon(Icons.info_outline, color: Colors.white),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
 
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: playerCount,
-              itemBuilder: (_, i) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: TextField(
-                    controller: _nameControllers[i],
-                    decoration: InputDecoration(
-                      hintText: "Player ${i + 1}",
-                      border: const OutlineInputBorder(),
-                      isDense: true,
+              const SizedBox(height: 14),
+
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _panel(
+                        title: "PLAYERS",
+                        child: Column(
+                          children: [
+                            Text(
+                              "$playerCount Players",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                              ),
+                            ),
+                            Slider(
+                              min: 2,
+                              max: maxPlayers.toDouble(),
+                              divisions: 13,
+                              value: playerCount.toDouble(),
+                              onChanged: (v) =>
+                                  setState(() => playerCount = v.toInt()),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      _panel(
+                        title: "PLAYER NAMES",
+                        child: Column(
+                          children: List.generate(playerCount, (i) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: TextField(
+                                controller: _nameControllers[i],
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  hintText: "Player ${i + 1}",
+                                  hintStyle: const TextStyle(
+                                    color: Colors.white54,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.black26,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+
+                      _panel(
+                        title: "GAME MODE",
+                        child: Column(
+                          children: [
+                            _dropdown(
+                              "Category",
+                              category,
+                              TruthDareCategory.values,
+                              (v) => setState(() => category = v),
+                            ),
+                            if (category == TruthDareCategory.custom)
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.edit),
+                                label: const Text("Edit Custom Words"),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const TruthDareCustomWordsScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            _dropdown(
+                              "Turn Mode",
+                              turnMode,
+                              TurnSelectionMode.values,
+                              (v) => setState(() => turnMode = v),
+                            ),
+                            _dropdown(
+                              "Scoring Mode",
+                              scoringMode,
+                              ScoringMode.values,
+                              (v) => setState(() => scoringMode = v),
+                            ),
+                            _dropdown(
+                              "Skip Mode",
+                              skipBehavior,
+                              SkipBehavior.values,
+                              (v) => setState(() => skipBehavior = v),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      _panel(
+                        title: "OPTIONS",
+                        child: Column(
+                          children: [
+                            _switch(
+                              "Allow Switch",
+                              allowSwitch,
+                              (v) => setState(() => allowSwitch = v),
+                            ),
+                            _switch(
+                              "Limit Skips",
+                              limitSkips,
+                              (v) => setState(() => limitSkips = v),
+                            ),
+                            if (limitSkips)
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    "Max Skips",
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        onPressed: maxSkipsPerPlayer > 1
+                                            ? () => setState(
+                                                () => maxSkipsPerPlayer--,
+                                              )
+                                            : null,
+                                        icon: const Icon(Icons.remove),
+                                      ),
+                                      Text(
+                                        "$maxSkipsPerPlayer",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: () =>
+                                            setState(() => maxSkipsPerPlayer++),
+                                        icon: const Icon(Icons.add),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ✅ NEON START BUTTON
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: GestureDetector(
+                  onTap: _startGame,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 60,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF3A1C71), Color(0xFFD76D77)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.pinkAccent.withOpacity(0.9),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      "START GAME",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1,
+                      ),
                     ),
                   ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            // ------------ CATEGORY ------------
-            _buildDropdown<TruthDareCategory>(
-              title: "Category",
-              value: category,
-              items: TruthDareCategory.values,
-              labelBuilder: (c) => c.name.toUpperCase(),
-              onChanged: (v) => setState(() => category = v),
-            ),
-
-            // ✅ CUSTOM WORDS BUTTON
-            if (category == TruthDareCategory.custom)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.edit),
-                    label: const Text("Edit Custom Truth & Dare"),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const TruthDareCustomWordsScreen(),
-                        ),
-                      );
-                    },
-                  ),
                 ),
-              ),
-
-            const SizedBox(height: 12),
-
-            // ------------ TURN MODE ------------
-            _buildDropdown<TurnSelectionMode>(
-              title: "Turn Selection",
-              value: turnMode,
-              items: TurnSelectionMode.values,
-              labelBuilder: (m) =>
-                  m == TurnSelectionMode.random ? "RANDOM" : "SPIN BOTTLE",
-              onChanged: (v) => setState(() => turnMode = v),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ------------ SCORING MODE ------------
-            _buildDropdown<ScoringMode>(
-              title: "Scoring Mode",
-              value: scoringMode,
-              items: ScoringMode.values,
-              labelBuilder: (s) =>
-                  s == ScoringMode.casual ? "CASUAL" : "POINTS",
-              onChanged: (v) => setState(() => scoringMode = v),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ------------ SKIP BEHAVIOR ------------
-            _buildDropdown<SkipBehavior>(
-              title: "Skip Behavior",
-              value: skipBehavior,
-              items: SkipBehavior.values,
-              labelBuilder: (s) {
-                switch (s) {
-                  case SkipBehavior.penalty:
-                    return "PENALTY";
-                  case SkipBehavior.forcedDare:
-                    return "FORCED DARE";
-                  case SkipBehavior.disabled:
-                    return "DISABLED";
-                }
-              },
-              onChanged: (v) => setState(() => skipBehavior = v),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ------------ SWITCH ALLOW ------------
-            SwitchListTile(
-              title: const Text("Allow Switch (Truth ↔ Dare)"),
-              value: allowSwitch,
-              onChanged: (v) => setState(() => allowSwitch = v),
-            ),
-
-            // ------------ LIMIT SKIPS ------------
-            SwitchListTile(
-              title: const Text("Limit Skips Per Player"),
-              value: limitSkips,
-              onChanged: (v) => setState(() => limitSkips = v),
-            ),
-
-            if (limitSkips) ...[
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  const Text("Max Skips:"),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: maxSkipsPerPlayer > 1
-                        ? () => setState(() => maxSkipsPerPlayer--)
-                        : null,
-                    icon: const Icon(Icons.remove),
-                  ),
-                  Text("$maxSkipsPerPlayer"),
-                  IconButton(
-                    onPressed: () => setState(() => maxSkipsPerPlayer++),
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
               ),
             ],
-
-            const SizedBox(height: 24),
-
-            // ------------ START BUTTON ------------
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _startGame,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text("START GAME", style: TextStyle(fontSize: 18)),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDropdown<T>({
-    required String title,
-    required T value,
-    required List<T> items,
-    required String Function(T) labelBuilder,
-    required void Function(T) onChanged,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
+  Widget _panel({required String title, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        children: [
+          Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.white70,
+              letterSpacing: 2,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        Expanded(
-          flex: 3,
-          child: DropdownButton<T>(
-            isExpanded: true,
-            value: value,
-            items: items
-                .map(
-                  (e) => DropdownMenuItem<T>(
-                    value: e,
-                    child: Text(labelBuilder(e)),
-                  ),
-                )
-                .toList(),
-            onChanged: (v) {
-              if (v != null) onChanged(v);
-            },
-          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _switch(String label, bool value, Function(bool) onChanged) {
+    return SwitchListTile(
+      value: value,
+      onChanged: onChanged,
+      title: Text(label, style: const TextStyle(color: Colors.white)),
+    );
+  }
+
+  Widget _dropdown<T>(
+    String label,
+    T value,
+    List<T> items,
+    Function(T) onChanged,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white)),
+        DropdownButton<T>(
+          dropdownColor: Colors.black,
+          value: value,
+          onChanged: (v) => onChanged(v!),
+          items: items
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(e.toString().split('.').last.toUpperCase()),
+                ),
+              )
+              .toList(),
         ),
       ],
     );

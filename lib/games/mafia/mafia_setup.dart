@@ -72,29 +72,31 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("How to Play Mafia"),
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "How to Play Mafia",
+          style: TextStyle(color: Colors.white),
+        ),
         content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("• Mafia secretly kills one player each night."),
-              SizedBox(height: 6),
-              Text("• Doctor can save one player."),
-              SizedBox(height: 6),
-              Text("• Detective can investigate one player."),
-              SizedBox(height: 6),
-              Text("• Day phase: Everyone votes to eliminate one suspect."),
-              SizedBox(height: 6),
-              Text("• If all Mafia die → Civilians win."),
-              SizedBox(height: 6),
-              Text("• If Mafia equals Civilians → Mafia wins."),
-            ],
+          child: Text(
+            "🌙 NIGHT PHASE\n"
+            "• Mafia secretly kills one player.\n"
+            "• Doctor can save one player.\n"
+            "• Detective can investigate one player.\n\n"
+            "☀️ DAY PHASE\n"
+            "• Everyone discusses.\n"
+            "• Vote to eliminate one suspect.\n\n"
+            "🏆 WIN CONDITIONS\n"
+            "• If all Mafia die → Civilians win.\n"
+            "• If Mafia equals Civilians → Mafia wins.\n",
+            style: TextStyle(color: Colors.white70, height: 1.5),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: Navigator.of(context).pop,
-            child: const Text("OK"),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Got it"),
           ),
         ],
       ),
@@ -104,127 +106,256 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Mafia Setup"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: _showHowToPlay,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF020024), Color(0xFF790C0C)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Number of Players", style: TextStyle(fontSize: 18)),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
 
-            Slider(
-              value: playerCount.toDouble(),
-              min: 4,
-              max: 15,
-              divisions: 11,
-              label: playerCount.toString(),
-              onChanged: (v) {
-                setState(() {
-                  playerCount = v.toInt();
-                  if (mafiaCount >= playerCount) mafiaCount = 1;
-                  _syncControllers();
-                });
-              },
-            ),
+              // ✅ HEADER
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "MAFIA",
+                      style: TextStyle(
+                        letterSpacing: 4,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _showHowToPlay,
+                      icon: const Icon(Icons.info_outline, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
 
-            const SizedBox(height: 12),
-            const Text("Player Names"),
+              const SizedBox(height: 14),
 
-            ...List.generate(playerCount, (i) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: TextField(
-                  controller: nameControllers[i],
-                  decoration: InputDecoration(
-                    hintText: "Player ${i + 1}",
-                    border: const OutlineInputBorder(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _panel(
+                        title: "PLAYERS",
+                        child: Column(
+                          children: [
+                            Text(
+                              "$playerCount Players",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                              ),
+                            ),
+                            Slider(
+                              min: 4,
+                              max: 15,
+                              divisions: 11,
+                              value: playerCount.toDouble(),
+                              onChanged: (v) {
+                                setState(() {
+                                  playerCount = v.toInt();
+                                  if (mafiaCount >= playerCount) mafiaCount = 1;
+                                  _syncControllers();
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      _panel(
+                        title: "PLAYER NAMES",
+                        child: Column(
+                          children: List.generate(playerCount, (i) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: TextField(
+                                controller: nameControllers[i],
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  hintText: "Player ${i + 1}",
+                                  hintStyle: const TextStyle(
+                                    color: Colors.white54,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.black26,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+
+                      _panel(
+                        title: "ROLES",
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  "Mafia Count",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                DropdownButton<int>(
+                                  dropdownColor: Colors.black,
+                                  value: mafiaCount,
+                                  onChanged: (v) =>
+                                      setState(() => mafiaCount = v!),
+                                  items:
+                                      List.generate(
+                                            playerCount - 1,
+                                            (i) => i + 1,
+                                          )
+                                          .map(
+                                            (e) => DropdownMenuItem(
+                                              value: e,
+                                              child: Text(e.toString()),
+                                            ),
+                                          )
+                                          .toList(),
+                                ),
+                              ],
+                            ),
+                            _switch(
+                              "Enable Doctor",
+                              hasDoctor,
+                              (v) => setState(() => hasDoctor = v),
+                            ),
+                            _switch(
+                              "Enable Detective",
+                              hasDetective,
+                              (v) => setState(() => hasDetective = v),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      _panel(
+                        title: "GAME OPTIONS",
+                        child: Column(
+                          children: [
+                            _switch(
+                              "Secret Voting",
+                              secretVoting,
+                              (v) => setState(() => secretVoting = v),
+                            ),
+                            _switch(
+                              "Enable Timer",
+                              timerEnabled,
+                              (v) => setState(() => timerEnabled = v),
+                            ),
+                            if (timerEnabled)
+                              Slider(
+                                value: timerSeconds.toDouble(),
+                                min: 30,
+                                max: 180,
+                                divisions: 5,
+                                label: "$timerSeconds sec",
+                                onChanged: (v) =>
+                                    setState(() => timerSeconds = v.toInt()),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            }),
+              ),
 
-            const Divider(height: 36),
-
-            const Text("Roles", style: TextStyle(fontSize: 18)),
-
-            const SizedBox(height: 10),
-
-            Row(
-              children: [
-                const Text("Mafia Count"),
-                const SizedBox(width: 12),
-                DropdownButton<int>(
-                  value: mafiaCount,
-                  onChanged: (v) => setState(() => mafiaCount = v!),
-                  items: List.generate(playerCount - 1, (i) => i + 1)
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(e.toString()),
+              // ✅ START BUTTON
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: GestureDetector(
+                  onTap: _startGame,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 60,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF512F), Color(0xFFDD2476)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.redAccent.withOpacity(0.9),
+                          blurRadius: 20,
                         ),
-                      )
-                      .toList(),
+                      ],
+                    ),
+                    child: const Text(
+                      "START MAFIA",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
-
-            SwitchListTile(
-              value: hasDoctor,
-              onChanged: (v) => setState(() => hasDoctor = v),
-              title: const Text("Enable Doctor"),
-            ),
-
-            SwitchListTile(
-              value: hasDetective,
-              onChanged: (v) => setState(() => hasDetective = v),
-              title: const Text("Enable Detective"),
-            ),
-
-            const Divider(height: 36),
-
-            const Text("Game Settings", style: TextStyle(fontSize: 18)),
-
-            SwitchListTile(
-              value: secretVoting,
-              onChanged: (v) => setState(() => secretVoting = v),
-              title: const Text("Secret Voting"),
-            ),
-
-            SwitchListTile(
-              value: timerEnabled,
-              onChanged: (v) => setState(() => timerEnabled = v),
-              title: const Text("Enable Timer"),
-            ),
-
-            if (timerEnabled)
-              Slider(
-                value: timerSeconds.toDouble(),
-                min: 30,
-                max: 180,
-                divisions: 5,
-                label: "$timerSeconds sec",
-                onChanged: (v) => setState(() => timerSeconds = v.toInt()),
               ),
-
-            const SizedBox(height: 30),
-
-            Center(
-              child: ElevatedButton(
-                onPressed: _startGame,
-                child: const Text("START MAFIA"),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  // ✅ PREMIUM PANEL
+  Widget _panel({required String title, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white70,
+              letterSpacing: 2,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  // ✅ PREMIUM SWITCH
+  Widget _switch(String label, bool value, Function(bool) onChanged) {
+    return SwitchListTile(
+      value: value,
+      onChanged: onChanged,
+      title: Text(label, style: const TextStyle(color: Colors.white)),
     );
   }
 }

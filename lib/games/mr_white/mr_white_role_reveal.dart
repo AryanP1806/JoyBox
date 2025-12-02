@@ -4,7 +4,7 @@ import 'mr_white_final_guess.dart';
 import 'mr_white_scoreboard.dart';
 import 'mr_white_discussion.dart';
 
-class MrWhiteRoleRevealScreen extends StatelessWidget {
+class MrWhiteRoleRevealScreen extends StatefulWidget {
   final MrWhitePlayer eliminatedPlayer;
   final List<MrWhitePlayer> players;
   final MrWhiteGameConfig config;
@@ -16,33 +16,70 @@ class MrWhiteRoleRevealScreen extends StatelessWidget {
     required this.config,
   });
 
+  @override
+  State<MrWhiteRoleRevealScreen> createState() =>
+      _MrWhiteRoleRevealScreenState();
+}
+
+class _MrWhiteRoleRevealScreenState extends State<MrWhiteRoleRevealScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+  late Animation<double> _glow;
+
   int get aliveCivilians =>
-      players.where((p) => p.role == "civilian" && p.isAlive).length;
+      widget.players.where((p) => p.role == "civilian" && p.isAlive).length;
 
   int get aliveSpecial =>
-      players.where((p) => p.role != "civilian" && p.isAlive).length;
+      widget.players.where((p) => p.role != "civilian" && p.isAlive).length;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _scale = Tween<double>(
+      begin: 0.6,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
+
+    _glow = Tween<double>(
+      begin: 0.0,
+      end: 25.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   void _continue(BuildContext context) {
-    final isMrWhite = eliminatedPlayer.role == "mrwhite";
+    final isMrWhite = widget.eliminatedPlayer.role == "mrwhite";
 
-    // If Mr White eliminated → final guess
     if (isMrWhite) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => MrWhiteFinalGuessScreen(players: players),
+          builder: (_) => MrWhiteFinalGuessScreen(players: widget.players),
         ),
       );
       return;
     }
 
-    // Auto win conditions
     if (aliveSpecial >= aliveCivilians) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => MrWhiteScoreBoardScreen(
-            players: players,
+            players: widget.players,
             mrWhiteWonByNumbers: true,
           ),
         ),
@@ -54,66 +91,145 @@ class MrWhiteRoleRevealScreen extends StatelessWidget {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              MrWhiteScoreBoardScreen(players: players, civiliansWon: true),
+          builder: (_) => MrWhiteScoreBoardScreen(
+            players: widget.players,
+            civiliansWon: true,
+          ),
         ),
       );
       return;
     }
 
-    // Otherwise next round: back to Discussion
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            MrWhiteDiscussionScreen(players: players, config: config),
+        builder: (_) => MrWhiteDiscussionScreen(
+          players: widget.players,
+          config: widget.config,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final roleText = eliminatedPlayer.role.toUpperCase();
+    final roleText = widget.eliminatedPlayer.role.toUpperCase();
+    final isCivilian = widget.eliminatedPlayer.role == "civilian";
+
+    final roleColor = isCivilian ? Colors.greenAccent : Colors.redAccent;
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  eliminatedPlayer.name,
-                  style: const TextStyle(color: Colors.white70, fontSize: 26),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  roleText,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 52,
-                    fontWeight: FontWeight.bold,
-                    color: eliminatedPlayer.role == "civilian"
-                        ? Colors.greenAccent
-                        : Colors.redAccent,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.black, Color(0xFF1A1A1A)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                return Transform.scale(
+                  scale: _scale.value,
+                  child: Container(
+                    padding: const EdgeInsets.all(30),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: roleColor.withValues(alpha: _glow.value / 80),
+                          blurRadius: _glow.value,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.eliminatedPlayer.name,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            color: Colors.white70,
+                            letterSpacing: 1,
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        Text(
+                          roleText,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 56,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 3,
+                            color: roleColor,
+                            shadows: [
+                              Shadow(
+                                color: roleColor.withValues(alpha: 0.8),
+                                blurRadius: 30,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        const Text(
+                          "WAS ELIMINATED",
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 18,
+                            letterSpacing: 2,
+                          ),
+                        ),
+
+                        const SizedBox(height: 40),
+
+                        GestureDetector(
+                          onTap: () => _continue(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 40,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFFD200), Color(0xFFFF9F00)],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.orangeAccent.withValues(
+                                    alpha: 0.8,
+                                  ),
+                                  blurRadius: 18,
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              "CONTINUE",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                const Text(
-                  "was eliminated!",
-                  style: TextStyle(color: Colors.white54, fontSize: 20),
-                ),
-                const SizedBox(height: 40),
-                ElevatedButton(
-                  onPressed: () => _continue(context),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    child: Text("CONTINUE", style: TextStyle(fontSize: 18)),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ),

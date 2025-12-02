@@ -82,6 +82,12 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen>
         _timeLeft--;
         if (_timeLeft <= 0) {
           t.cancel();
+          Vibration.hasVibrator().then((has) {
+            if (has == true) Vibration.vibrate(duration: 160);
+          });
+          Vibration.hasVibrator().then((has) {
+            if (has == true) Vibration.vibrate(duration: 160);
+          });
           _endGame();
         }
       });

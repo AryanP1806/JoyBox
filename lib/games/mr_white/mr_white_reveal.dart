@@ -12,29 +12,46 @@ class MrWhiteRevealScreen extends StatefulWidget {
   State<MrWhiteRevealScreen> createState() => _MrWhiteRevealScreenState();
 }
 
-class _MrWhiteRevealScreenState extends State<MrWhiteRevealScreen> {
+class _MrWhiteRevealScreenState extends State<MrWhiteRevealScreen>
+    with SingleTickerProviderStateMixin {
   late List<MrWhitePlayer> players;
   int currentIndex = 0;
   bool revealed = false;
+
+  late AnimationController _controller;
+  late Animation<double> _flip;
 
   @override
   void initState() {
     super.initState();
     players = _generatePlayers();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _flip = Tween<double>(
+      begin: 0,
+      end: pi,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // ✅ PLAYER + ROLE + WORD GENERATION (SAFE)
   List<MrWhitePlayer> _generatePlayers() {
     final rand = Random();
     final names = widget.config.playerNames;
 
-    // ✅ SAFETY CHECK — NO MORE SILENT FALLBACK TO OLD WORDS
     if (widget.config.customWords.isEmpty) {
-      throw Exception(
-        "No custom words provided! Old default words are no longer allowed.",
-      );
+      throw Exception("Custom word list is EMPTY. Add words first.");
     }
 
-    // Step 1: Assign all as civilian first
     List<String> roles = List.filled(widget.config.playerCount, "civilian");
 
     int added = 0;
@@ -48,9 +65,7 @@ class _MrWhiteRevealScreenState extends State<MrWhiteRevealScreen> {
       }
     }
 
-    // ✅ ONLY USE NEW CUSTOM WORDS — NO HARDCODED LIST ANYMORE
     final List<String> words = List.from(widget.config.customWords);
-
     final mainWord = words[rand.nextInt(words.length)];
 
     String similarWord = mainWord;
@@ -75,7 +90,12 @@ class _MrWhiteRevealScreenState extends State<MrWhiteRevealScreen> {
     });
   }
 
-  void _next(BuildContext context) {
+  void _reveal() {
+    setState(() => revealed = true);
+    _controller.forward();
+  }
+
+  void _next() {
     if (currentIndex >= players.length - 1) {
       Navigator.pushReplacement(
         context,
@@ -89,54 +109,151 @@ class _MrWhiteRevealScreenState extends State<MrWhiteRevealScreen> {
         revealed = false;
         currentIndex++;
       });
+      _controller.reset();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final player = players[currentIndex];
+    final isSpecial = player.role != "civilian";
 
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(title: const Text("Role Reveal")),
       body: Center(
         child: revealed
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    player.name,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    "Role: ${player.role.toUpperCase()}",
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    player.word == null
-                        ? "You have NO WORD"
-                        : "Your word: ${player.word}",
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                  const SizedBox(height: 30),
-                  ElevatedButton(
-                    onPressed: () => _next(context),
-                    child: Text(
-                      currentIndex == players.length - 1
-                          ? "Start Game"
-                          : "Next Player",
-                    ),
-                  ),
-                ],
+            ? AnimatedBuilder(
+                animation: _flip,
+                builder: (context, child) {
+                  final angle = _flip.value;
+                  final isBack = angle > pi / 2;
+
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001)
+                      ..rotateY(angle),
+                    child: isBack
+                        ? Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.rotationY(pi),
+                            child: child,
+                          )
+                        : child,
+                  );
+                },
+                child: _buildRevealCard(player, isSpecial),
               )
-            : ElevatedButton(
-                onPressed: () => setState(() => revealed = true),
-                child: Text("Give phone to ${player.name}"),
+            : GestureDetector(
+                onTap: _reveal,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 18,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(30),
+                    color: Colors.white.withValues(alpha: 0.08),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Text(
+                    "Give phone to ${player.name}\nTAP TO REVEAL",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
               ),
+      ),
+    );
+  }
+
+  // ✅ PREMIUM REVEAL CARD (NO INVERTED TEXT)
+  Widget _buildRevealCard(MrWhitePlayer player, bool isSpecial) {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: (isSpecial ? Colors.redAccent : Colors.greenAccent)
+                .withValues(alpha: 0.8),
+            blurRadius: 30,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            player.name,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 24,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            player.role.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 46,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 3,
+              color: isSpecial ? Colors.redAccent : Colors.greenAccent,
+              shadows: [
+                Shadow(
+                  color: isSpecial ? Colors.redAccent : Colors.greenAccent,
+                  blurRadius: 30,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            player.word == null
+                ? "YOU HAVE NO WORD"
+                : "YOUR WORD:\n${player.word}",
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // ✅ CONTINUE BUTTON
+          GestureDetector(
+            onTap: _next,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFD200), Color(0xFFFF9F00)],
+                ),
+              ),
+              child: Text(
+                currentIndex == players.length - 1
+                    ? "START GAME"
+                    : "NEXT PLAYER",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

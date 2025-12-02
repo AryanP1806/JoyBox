@@ -137,7 +137,7 @@ class _Header extends StatelessWidget {
                 Icon(Icons.dark_mode, size: 18, color: Colors.white),
                 SizedBox(width: 4),
                 Text(
-                  "Night",
+                  "Aryan Pore",
                   style: TextStyle(
                     color: PartyColors.textPrimary,
                     fontSize: 12,
@@ -433,7 +433,7 @@ class _BottomNavBar extends StatelessWidget {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Tab $index not wired yet."),
+            content: Text("Tab $index not wired yet.--Desined by Aryan Pore"),
             duration: const Duration(milliseconds: 800),
           ),
         );

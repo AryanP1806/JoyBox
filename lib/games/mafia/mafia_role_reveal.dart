@@ -192,9 +192,28 @@ class _MafiaRoleRevealScreenState extends State<MafiaRoleRevealScreen>
                   ),
                 ],
               )
-            : ElevatedButton(
-                onPressed: _reveal,
-                child: Text("Give phone to ${player.name}"),
+            : GestureDetector(
+                onTap: _reveal,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 18,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(30),
+                    color: Colors.white.withValues(alpha: 0.08),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Text(
+                    "Give phone to ${player.name}\nTAP TO REVEAL",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
               ),
       ),
     );

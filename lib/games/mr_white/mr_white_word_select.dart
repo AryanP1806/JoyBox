@@ -16,8 +16,8 @@ class MrWhiteWordSelectScreen extends StatefulWidget {
 class _MrWhiteWordSelectScreenState extends State<MrWhiteWordSelectScreen> {
   final TextEditingController customWordController = TextEditingController();
 
-  late List<String> localCustomWords;
   final Set<String> selectedPacks = {};
+  late List<String> localCustomWords;
 
   // ✅ WORD PACKS
   final Map<String, List<String>> wordPacks = {
@@ -29,41 +29,23 @@ class _MrWhiteWordSelectScreenState extends State<MrWhiteWordSelectScreen> {
       "Noodles",
       "Ice Cream",
       "Sandwich",
-      "French Fries",
       "Cake",
       "Chocolate",
-      "Pani Puri",
       "Momos",
-      "Sushi",
-      "Vada Pav",
-      "Butter Chicken",
-      "Popcorn",
-      "Shawarma",
       "Dosa",
-      "Cheesecake",
-      "Black Coffee",
+      "Popcorn",
     ],
     "Places": [
       "Goa",
       "Hospital",
-      "Police Station",
-      "Public Toilet",
-      "Gym",
-      "Cinema Hall",
-      "Graveyard",
-      "Museum",
-      "Metro Station",
-      "Hostel",
-      "Mumbai",
-      "Delhi",
-      "Paris",
-      "New York",
-      "London",
       "Airport",
       "Beach",
       "Mall",
       "Temple",
       "School",
+      "Gym",
+      "Cinema",
+      "Graveyard",
     ],
     "Animals": [
       "Tiger",
@@ -71,143 +53,41 @@ class _MrWhiteWordSelectScreenState extends State<MrWhiteWordSelectScreen> {
       "Elephant",
       "Dog",
       "Cat",
-      "Horse",
-      "Monkey",
-      "Shark",
       "Snake",
       "Panda",
-      "Giraffe",
-      "Kangaroo",
-      "Sloth",
-      "Gorilla",
-      "Mosquito",
-      "Dinosaur",
-      "Penguin",
+      "Shark",
+      "Monkey",
       "Cockroach",
-      "Peacock",
-      "Platypus",
     ],
     "Superheroes": [
       "Batman",
       "Superman",
       "Spiderman",
       "Ironman",
-      "Hulk",
       "Thor",
-      "Flash",
-      "Wolverine",
+      "Hulk",
       "Deadpool",
-      "Doctor Strange",
-    ],
-    "Famous People": [
-      "Virat Kohli",
-      "Elon Musk",
-      "Cristiano Ronaldo",
-      "Messi",
-      "Narendra Modi",
-      "Bill Gates",
-      "Shah Rukh Khan",
-      "Taylor Swift",
-      "The Rock",
-      "Michael Jackson",
-      "Albert Einstein",
-      "Kim Kardashian",
-      "Donald Trump",
-      "Dhoni",
-      "Deepika Padukone",
-      "Bean",
-      "Hitler",
-    ],
-    "Video Games": [
-      "GTA",
-      "Minecraft",
-      "PUBG",
-      "Valorant",
-      "Call of Duty",
-      "FIFA",
-      "Among Us",
-      "Clash of Clans",
-    ],
-    "Anime": [
-      "Naruto",
-      "One Piece",
-      "Attack on Titan",
-      "Death Note",
-      "Dragon Ball",
-      "Demon Slayer",
-      "Jujutsu Kaisen",
-    ],
-    "Friends Series": [
-      "Ross",
-      "Rachel",
-      "Monica",
-      "Chandler",
-      "Joey",
-      "Phoebe",
-    ],
-    "Adult (Party Safe)": [
-      "Dating",
-      "Breakup",
-      "Crush",
-      "Ex",
-      "Flirting",
-      "One-Night Stand",
-      "Red Flag",
-      "Situationship",
-      "Walk of Shame",
-      "Friends with Benefits",
-      "Third Wheel",
-      "Catfish",
-      "Toxic Ex",
-      "Drunk Texting",
-      "Ghosting",
-      "Love Triangle",
-    ],
-    "Movies": [
-      "Inception",
-      "Titanic",
-      "Avatar",
-      "The Dark Knight",
-      "Forrest Gump",
-      "The Godfather",
-      "Pulp Fiction",
-      "The Shawshank Redemption",
-      "Jurassic Park",
-      "The Avengers",
-    ],
-    "Adult (Explicit)": [
-      "Orgasm",
-      "Threesome",
-      "BDSM",
-      "Role Play",
-      "Striptease",
-      "Voyeurism",
-      "Exhibitionism",
-      "Dirty Talk",
-      "Cunnilingus",
-      "Fingering",
-      "69 Position",
-      "Spanking",
-      "Sexting",
-      "Lap Dance",
-      "Edging",
-      "Golden Shower",
-      "Anal Play",
-      "Domination",
-      "Submission",
-      "Mutual Masturbation",
+      "Flash",
     ],
     "Sports": [
-      "Football",
       "Cricket",
+      "Football",
+      "Badminton",
+      "Boxing",
+      "Wrestling",
       "Basketball",
       "Tennis",
       "Swimming",
-      "Running",
-      "Cycling",
-      "Wrestling",
-      "Boxing",
-      "Badminton",
+    ],
+    "Adults (Party Safe)": [
+      "Dating",
+      "Flirting",
+      "Breakup",
+      "Crush",
+      "Ghosting",
+      "Situationship",
+      "Red Flag",
+      "Drunk Text",
     ],
   };
 
@@ -227,6 +107,10 @@ class _MrWhiteWordSelectScreenState extends State<MrWhiteWordSelectScreen> {
     });
   }
 
+  void removeCustomWord(String word) {
+    setState(() => localCustomWords.remove(word));
+  }
+
   List<String> buildFinalWordPool() {
     final List<String> finalPool = [];
 
@@ -238,22 +122,20 @@ class _MrWhiteWordSelectScreenState extends State<MrWhiteWordSelectScreen> {
       finalPool.addAll(localCustomWords);
     }
 
-    return finalPool;
+    return finalPool.toSet().toList(); // ✅ NO DUPLICATES
   }
 
   void proceed() {
     final finalPool = buildFinalWordPool();
 
-    if (finalPool.isEmpty) {
+    if (finalPool.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Select at least one word pack!")),
+        const SnackBar(content: Text("Add at least 2 words to start.")),
       );
       return;
     }
 
-    final selectedWord = finalPool[Random().nextInt(finalPool.length)];
-
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => MrWhiteRevealScreen(
@@ -278,71 +160,146 @@ class _MrWhiteWordSelectScreenState extends State<MrWhiteWordSelectScreen> {
     final useCustom = widget.config.useCustomWords;
 
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(title: const Text("Select Word Packs")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Text(
-              "Choose Word Packs (Multiple Allowed)",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+      body: Column(
+        children: [
+          const SizedBox(height: 8),
 
-            const SizedBox(height: 10),
+          // ✅ PACK SELECTION
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(14),
+              children: [
+                const Text(
+                  "Choose Categories",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white70,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 10),
 
-            Expanded(
-              child: ListView(
-                children: wordPacks.keys.map((packName) {
-                  final isSelected = selectedPacks.contains(packName);
-                  return CheckboxListTile(
-                    title: Text(packName),
-                    value: isSelected,
-                    onChanged: (val) {
+                ...wordPacks.keys.map((pack) {
+                  final selected = selectedPacks.contains(pack);
+
+                  return GestureDetector(
+                    onTap: () {
                       setState(() {
-                        val!
-                            ? selectedPacks.add(packName)
-                            : selectedPacks.remove(packName);
+                        selected
+                            ? selectedPacks.remove(pack)
+                            : selectedPacks.add(pack);
                       });
                     },
-                  );
-                }).toList(),
-              ),
-            ),
-
-            if (useCustom) ...[
-              const Divider(),
-              const Text("Custom Words"),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: customWordController,
-                      decoration: const InputDecoration(
-                        labelText: "Add Custom Word",
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: selected
+                            ? const LinearGradient(
+                                colors: [Color(0xFFFFD200), Color(0xFFFF9F00)],
+                              )
+                            : const LinearGradient(
+                                colors: [Color(0xFF222222), Color(0xFF111111)],
+                              ),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Text(
+                        pack,
+                        style: TextStyle(
+                          color: selected ? Colors.black : Colors.white70,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
+                  );
+                }),
+
+                if (useCustom) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Custom Words",
+                    style: TextStyle(fontSize: 18, color: Colors.white70),
                   ),
-                  IconButton(
-                    onPressed: addCustomWord,
-                    icon: const Icon(Icons.add),
+                  const SizedBox(height: 10),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: customWordController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: "Add Custom Word",
+                            hintStyle: const TextStyle(color: Colors.white54),
+                            filled: true,
+                            fillColor: Colors.black26,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: addCustomWord,
+                        icon: const Icon(Icons.add, color: Colors.orange),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: localCustomWords.map((w) {
+                      return Chip(
+                        label: Text(w),
+                        deleteIcon: const Icon(Icons.close),
+                        onDeleted: () => removeCustomWord(w),
+                      );
+                    }).toList(),
                   ),
                 ],
-              ),
-              SizedBox(
-                height: 80,
-                child: ListView.builder(
-                  itemCount: localCustomWords.length,
-                  itemBuilder: (ctx, i) =>
-                      ListTile(title: Text(localCustomWords[i])),
+
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+
+          // ✅ START BUTTON
+          Padding(
+            padding: const EdgeInsets.only(bottom: 18),
+            child: GestureDetector(
+              onTap: proceed,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 50,
+                  vertical: 16,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFD200), Color(0xFFFF9F00)],
+                  ),
+                ),
+                child: const Text(
+                  "START GAME",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
-            ],
-
-            const SizedBox(height: 10),
-
-            ElevatedButton(onPressed: proceed, child: const Text("START GAME")),
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
