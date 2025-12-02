@@ -48,53 +48,69 @@ class _TruthDareResultsScreenState extends State<TruthDareResultsScreen> {
       ),
       body: Stack(
         children: [
-          // ✅ CONFETTI
+          // ✅ CONFETTI ON TOP
           Align(
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
               confettiController: _confettiController,
               blastDirection: pi / 2,
               emissionFrequency: 0.05,
-              numberOfParticles: 25,
+              numberOfParticles: 30,
               gravity: 0.3,
             ),
           ),
 
+          // ✅ MAIN CONTENT
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                const SizedBox(height: 10),
-
-                // ✅ WINNER CARD
+                // ✅ NEON WINNER CARD
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: PartyGradients.truth,
                     borderRadius: BorderRadius.circular(24),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.yellow.withOpacity(0.9),
+                        blurRadius: 25,
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
                   child: Column(
                     children: [
+                      const Text("🏆", style: TextStyle(fontSize: 48)),
+                      const SizedBox(height: 6),
                       const Text(
-                        "🏆 WINNER 🏆",
+                        "WINNER",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                          letterSpacing: 2,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Text(
                         winner.name,
                         style: const TextStyle(
-                          fontSize: 30,
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         "Score: ${winner.score}",
-                        style: const TextStyle(fontSize: 18),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.black,
+                        ),
                       ),
                     ],
                   ),
@@ -139,7 +155,7 @@ class _TruthDareResultsScreenState extends State<TruthDareResultsScreen> {
 
                 const SizedBox(height: 10),
 
-                // ✅ PLAY AGAIN
+                // ✅ PLAY AGAIN BUTTON
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

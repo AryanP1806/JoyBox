@@ -67,10 +67,52 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
     );
   }
 
+  // ✅ HOW TO PLAY POPUP
+  void _showHowToPlay() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("How to Play Mafia"),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("• Mafia secretly kills one player each night."),
+              SizedBox(height: 6),
+              Text("• Doctor can save one player."),
+              SizedBox(height: 6),
+              Text("• Detective can investigate one player."),
+              SizedBox(height: 6),
+              Text("• Day phase: Everyone votes to eliminate one suspect."),
+              SizedBox(height: 6),
+              Text("• If all Mafia die → Civilians win."),
+              SizedBox(height: 6),
+              Text("• If Mafia equals Civilians → Mafia wins."),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: Navigator.of(context).pop,
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Mafia Setup")),
+      appBar: AppBar(
+        title: const Text("Mafia Setup"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: _showHowToPlay,
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -93,27 +135,32 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
               },
             ),
 
-            const SizedBox(height: 10),
-            const Text("Optional Player Names"),
+            const SizedBox(height: 12),
+            const Text("Player Names"),
 
             ...List.generate(playerCount, (i) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: TextField(
                   controller: nameControllers[i],
-                  decoration: InputDecoration(hintText: "Player ${i + 1}"),
+                  decoration: InputDecoration(
+                    hintText: "Player ${i + 1}",
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
               );
             }),
 
-            const Divider(height: 30),
+            const Divider(height: 36),
 
             const Text("Roles", style: TextStyle(fontSize: 18)),
+
+            const SizedBox(height: 10),
 
             Row(
               children: [
                 const Text("Mafia Count"),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 DropdownButton<int>(
                   value: mafiaCount,
                   onChanged: (v) => setState(() => mafiaCount = v!),
@@ -141,7 +188,7 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
               title: const Text("Enable Detective"),
             ),
 
-            const Divider(height: 30),
+            const Divider(height: 36),
 
             const Text("Game Settings", style: TextStyle(fontSize: 18)),
 

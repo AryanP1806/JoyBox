@@ -1,7 +1,6 @@
-import 'dart:async';
 import 'dart:math';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 
 class PhysicsSpinBottle extends StatefulWidget {
@@ -16,68 +15,68 @@ class PhysicsSpinBottle extends StatefulWidget {
 class _PhysicsSpinBottleState extends State<PhysicsSpinBottle>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  double _angle = 0;
-  double _velocity = 0;
-  Timer? _physicsTimer;
-
-  final AudioPlayer _player = AudioPlayer();
+  late Animation<double> _rotation;
+  final _audio = AudioPlayer();
+  final _rand = Random();
 
   @override
   void initState() {
     super.initState();
 
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(days: 1))
-          ..addListener(() {
-            setState(() {
-              _angle += _velocity;
-            });
-          });
-  }
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
 
-  void _startSpin() async {
-    _velocity = Random().nextDouble() * 0.4 + 0.3;
+    _rotation = Tween<double>(
+      begin: 0,
+      end: _rand.nextDouble() * 10 * pi,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutExpo));
 
-    await _player.play(AssetSource("sounds/spin.mp3"));
-    _controller.repeat();
+    _controller.addStatusListener((status) async {
+      if (status == AnimationStatus.completed) {
+        await _audio.play(AssetSource("sounds/spin.mp3"));
+        if (await Vibration.hasVibrator() ?? false) {
+          Vibration.vibrate(duration: 120);
+        }
 
-    _physicsTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
-      _velocity *= 0.985; // friction
-
-      if (_velocity < 0.002) {
-        _stopSpin();
+        widget.onSpinEnd();
       }
     });
   }
 
-  void _stopSpin() async {
-    _physicsTimer?.cancel();
-    _controller.stop();
-    _player.stop();
+  void spin() {
+    _rotation = Tween<double>(
+      begin: 0,
+      end: _rand.nextDouble() * 14 * pi,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutExpo));
 
-    if (await Vibration.hasVibrator() ?? false) {
-      Vibration.vibrate(duration: 120);
-    }
-
-    widget.onSpinEnd();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _physicsTimer?.cancel();
-    _player.dispose();
-    super.dispose();
+    _controller.forward(from: 0);
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _startSpin,
-      child: Transform.rotate(
-        angle: _angle,
-        child: Image.asset("assets/images/bottle.png", width: 140),
+      onTap: spin,
+      child: AnimatedBuilder(
+        animation: _rotation,
+        builder: (_, __) {
+          return Transform.rotate(
+            angle: _rotation.value,
+            child: Image.asset(
+              "assets/images/bottle.png",
+              width: MediaQuery.of(context).size.width * 0.20,
+            ),
+          );
+        },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _audio.dispose();
+    super.dispose();
   }
 }

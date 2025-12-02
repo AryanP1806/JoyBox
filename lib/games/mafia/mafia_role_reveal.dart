@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+
 import 'mafia_models.dart';
-import 'mafia_night_phase.dart';
 import 'mafia_kill_screen.dart';
 
 class MafiaRoleRevealScreen extends StatefulWidget {
@@ -13,15 +13,35 @@ class MafiaRoleRevealScreen extends StatefulWidget {
   State<MafiaRoleRevealScreen> createState() => _MafiaRoleRevealScreenState();
 }
 
-class _MafiaRoleRevealScreenState extends State<MafiaRoleRevealScreen> {
+class _MafiaRoleRevealScreenState extends State<MafiaRoleRevealScreen>
+    with SingleTickerProviderStateMixin {
   late List<MafiaPlayer> players;
   int currentIndex = 0;
   bool revealed = false;
+
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
 
   @override
   void initState() {
     super.initState();
     players = _generatePlayers();
+
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 550),
+    );
+
+    _flipAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _flipController, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _flipController.dispose();
+    super.dispose();
   }
 
   List<MafiaPlayer> _generatePlayers() {
@@ -30,25 +50,55 @@ class _MafiaRoleRevealScreenState extends State<MafiaRoleRevealScreen> {
 
     final roles = <MafiaRole>[];
 
-    // Add Mafia
     for (int i = 0; i < widget.config.mafiaCount; i++) {
       roles.add(MafiaRole.mafia);
     }
 
-    // Optional roles
     if (widget.config.hasDoctor) roles.add(MafiaRole.doctor);
     if (widget.config.hasDetective) roles.add(MafiaRole.detective);
 
-    // Fill rest with civilians
     while (roles.length < total) {
       roles.add(MafiaRole.civilian);
     }
 
-    roles.shuffle();
+    roles.shuffle(rand);
 
     return List.generate(total, (i) {
       return MafiaPlayer(name: widget.config.players[i], role: roles[i]);
     });
+  }
+
+  MafiaPlayer get player => players[currentIndex];
+
+  Color _roleColor(MafiaRole role) {
+    switch (role) {
+      case MafiaRole.mafia:
+        return Colors.redAccent;
+      case MafiaRole.doctor:
+        return Colors.greenAccent;
+      case MafiaRole.detective:
+        return Colors.cyanAccent;
+      default:
+        return Colors.white;
+    }
+  }
+
+  String _roleEmoji(MafiaRole role) {
+    switch (role) {
+      case MafiaRole.mafia:
+        return "🔫";
+      case MafiaRole.doctor:
+        return "🩺";
+      case MafiaRole.detective:
+        return "🕵️";
+      default:
+        return "🙂";
+    }
+  }
+
+  void _reveal() {
+    setState(() => revealed = true);
+    _flipController.forward(from: 0);
   }
 
   void _next() {
@@ -70,7 +120,7 @@ class _MafiaRoleRevealScreenState extends State<MafiaRoleRevealScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final player = players[currentIndex];
+    final p = player;
 
     return Scaffold(
       appBar: AppBar(title: const Text("Role Reveal")),
@@ -80,22 +130,58 @@ class _MafiaRoleRevealScreenState extends State<MafiaRoleRevealScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    player.name,
+                    p.name,
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 30),
-                  Text(
-                    player.role.name.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
+
+                  const SizedBox(height: 40),
+
+                  // ✅ FLIP ANIMATION
+                  AnimatedBuilder(
+                    animation: _flipAnimation,
+                    builder: (_, child) {
+                      final angle = _flipAnimation.value * pi;
+                      final isBack = angle > pi / 2;
+
+                      return Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, 0.001)
+                          ..rotateY(angle),
+                        child: isBack
+                            ? Transform(
+                                alignment: Alignment.center,
+                                transform: Matrix4.rotationY(pi),
+                                child: child,
+                              )
+                            : child,
+                      );
+                    },
+                    child: Column(
+                      children: [
+                        Text(
+                          _roleEmoji(p.role),
+                          style: const TextStyle(fontSize: 60),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          p.role.name.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 34,
+                            fontWeight: FontWeight.bold,
+                            color: _roleColor(p.role),
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 40),
+
+                  const SizedBox(height: 50),
+
                   ElevatedButton(
                     onPressed: _next,
                     child: Text(
@@ -107,7 +193,7 @@ class _MafiaRoleRevealScreenState extends State<MafiaRoleRevealScreen> {
                 ],
               )
             : ElevatedButton(
-                onPressed: () => setState(() => revealed = true),
+                onPressed: _reveal,
                 child: Text("Give phone to ${player.name}"),
               ),
       ),
