@@ -6,6 +6,7 @@ import '../games/mafia/mafia_setup.dart';
 import '../games/heads_up/heads_up_setup.dart';
 import '../games/truth_or_dare/truth_dare_setup_screen.dart';
 import '../games/assassin/assassin_setup_screen.dart';
+import '../games/most_likely/most_likely_setup_screen.dart';
 // void main() {
 //   runApp(const PartyModeratorApp());
 // }
@@ -48,6 +49,7 @@ class PartyModeratorApp extends StatelessWidget {
         '/truthDare': (_) => const TruthDareSetupScreen(),
         '/headsUp': (_) => const HeadsUpSetupScreen(),
         '/assassin': (_) => const AssassinSetupScreen(),
+        '/mostLikely': (_) => const MostLikelySetupScreen(),
       },
     );
   }

@@ -9,6 +9,7 @@ import '../../widgets/pulse_timer_text.dart';
 // Assuming these exist in your project structure
 import 'heads_up_models.dart';
 import 'heads_up_results.dart';
+import '../../settings/app_settings.dart';
 
 enum HeadsUpTilt { neutral, correct, pass }
 
@@ -48,6 +49,17 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen>
   @override
   void initState() {
     super.initState();
+    // ✅ HARD RUNTIME BLOCK FOR ADULT MODE
+    if (!AppSettings.instance.adultEnabled &&
+        widget.config.pack == HeadsUpPack.adult) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Adult mode is disabled in settings.")),
+        );
+        Navigator.pop(context);
+      });
+      return;
+    }
 
     // Lock to landscape for the game
     SystemChrome.setPreferredOrientations([

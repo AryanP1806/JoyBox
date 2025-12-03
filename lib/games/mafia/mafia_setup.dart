@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import 'mafia_models.dart';
 import 'mafia_role_reveal.dart';
+import 'mafia_settings_cache.dart';
 
 class MafiaSetupScreen extends StatefulWidget {
   const MafiaSetupScreen({super.key});
@@ -24,15 +26,48 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
   @override
   void initState() {
     super.initState();
+    _restoreFromCache();
+  }
+
+  void _restoreFromCache() {
+    // Restore primitive settings
+    playerCount = MafiaSettingsCache.playerCount ?? playerCount;
+    mafiaCount = MafiaSettingsCache.mafiaCount ?? mafiaCount;
+    hasDoctor = MafiaSettingsCache.hasDoctor ?? hasDoctor;
+    hasDetective = MafiaSettingsCache.hasDetective ?? hasDetective;
+    secretVoting = MafiaSettingsCache.secretVoting ?? secretVoting;
+    timerEnabled = MafiaSettingsCache.timerEnabled ?? timerEnabled;
+    timerSeconds = MafiaSettingsCache.timerSeconds ?? timerSeconds;
+
+    // Build controllers with correct length
     _syncControllers();
+
+    // Restore names if present
+    final cachedNames = MafiaSettingsCache.playerNames;
+    if (cachedNames != null) {
+      for (
+        int i = 0;
+        i < nameControllers.length && i < cachedNames.length;
+        i++
+      ) {
+        nameControllers[i].text = cachedNames[i];
+      }
+    }
   }
 
   void _syncControllers() {
+    // shrink (dispose removed controllers)
+    while (nameControllers.length > playerCount) {
+      nameControllers.removeLast().dispose();
+    }
+    // grow
     while (nameControllers.length < playerCount) {
       nameControllers.add(TextEditingController());
     }
-    while (nameControllers.length > playerCount) {
-      nameControllers.removeLast();
+
+    // keep mafiaCount valid
+    if (mafiaCount >= playerCount) {
+      mafiaCount = 1;
     }
   }
 
@@ -51,8 +86,22 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
       return;
     }
 
+    final names = _buildFinalPlayerNames();
+
+    // ✅ SAVE SETTINGS TO CACHE so that after game, setup is prefilled
+    MafiaSettingsCache.save(
+      playerCount: playerCount,
+      mafiaCount: mafiaCount,
+      hasDoctor: hasDoctor,
+      hasDetective: hasDetective,
+      secretVoting: secretVoting,
+      timerEnabled: timerEnabled,
+      timerSeconds: timerSeconds,
+      playerNames: names,
+    );
+
     final config = MafiaGameConfig(
-      players: _buildFinalPlayerNames(),
+      players: names,
       mafiaCount: mafiaCount,
       hasDoctor: hasDoctor,
       hasDetective: hasDetective,
@@ -104,6 +153,14 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
   }
 
   @override
+  void dispose() {
+    for (final c in nameControllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
@@ -119,7 +176,7 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
             children: [
               const SizedBox(height: 12),
 
-              // ✅ HEADER
+              // HEADER
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -168,7 +225,6 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
                               onChanged: (v) {
                                 setState(() {
                                   playerCount = v.toInt();
-                                  if (mafiaCount >= playerCount) mafiaCount = 1;
                                   _syncControllers();
                                 });
                               },
@@ -218,8 +274,12 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
                                 DropdownButton<int>(
                                   dropdownColor: Colors.black,
                                   value: mafiaCount,
-                                  onChanged: (v) =>
-                                      setState(() => mafiaCount = v!),
+                                  onChanged: (v) => setState(() {
+                                    mafiaCount = v!;
+                                    if (mafiaCount >= playerCount) {
+                                      mafiaCount = 1;
+                                    }
+                                  }),
                                   items:
                                       List.generate(
                                             playerCount - 1,
@@ -281,7 +341,7 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
                 ),
               ),
 
-              // ✅ START BUTTON
+              // START BUTTON
               Padding(
                 padding: const EdgeInsets.only(bottom: 18),
                 child: GestureDetector(
@@ -322,7 +382,6 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
     );
   }
 
-  // ✅ PREMIUM PANEL
   Widget _panel({required String title, required Widget child}) {
     return Container(
       width: double.infinity,
@@ -350,7 +409,6 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
     );
   }
 
-  // ✅ PREMIUM SWITCH
   Widget _switch(String label, bool value, Function(bool) onChanged) {
     return SwitchListTile(
       value: value,

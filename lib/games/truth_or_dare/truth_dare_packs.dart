@@ -1,5 +1,6 @@
 import 'truth_dare_models.dart';
 import '../../storage/truth_dare_local_storage.dart';
+import '../../settings/app_settings.dart'; // ✅ ADD THIS
 
 import 'packs/td_friends_pack.dart';
 import 'packs/td_family_pack.dart';
@@ -22,6 +23,7 @@ class TruthDarePacks {
         return couplesTruths;
 
       case TruthDareCategory.adult:
+        if (!AppSettings.instance.adultEnabled) return [];
         return adultTruths;
 
       case TruthDareCategory.custom:
@@ -53,6 +55,7 @@ class TruthDarePacks {
         return couplesDares;
 
       case TruthDareCategory.adult:
+        if (!AppSettings.instance.adultEnabled) return [];
         return adultDares;
 
       case TruthDareCategory.custom:

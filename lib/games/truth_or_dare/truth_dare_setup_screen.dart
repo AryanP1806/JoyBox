@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../../settings/app_settings.dart'; // ✅ ADDED
 import 'truth_dare_models.dart';
 import 'truth_dare_game_screen.dart';
 import 'truth_dare_custom_words_screen.dart';
+import 'truth_dare_settings_cache.dart';
 
 class TruthDareSetupScreen extends StatefulWidget {
   const TruthDareSetupScreen({super.key});
@@ -29,6 +32,46 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
   int maxSkipsPerPlayer = 2;
 
   @override
+  void initState() {
+    super.initState();
+    _restoreFromCache();
+  }
+
+  void _restoreFromCache() {
+    playerCount = TruthDareSettingsCache.playerCount ?? playerCount;
+
+    if (TruthDareSettingsCache.categoryIndex != null) {
+      final cachedCategory =
+          TruthDareCategory.values[TruthDareSettingsCache.categoryIndex!];
+
+      // ✅ BLOCK ADULT IF DISABLED
+      if (cachedCategory != TruthDareCategory.adult ||
+          AppSettings.instance.adultEnabled) {
+        category = cachedCategory;
+      }
+
+      turnMode =
+          TurnSelectionMode.values[TruthDareSettingsCache.turnModeIndex!];
+      scoringMode =
+          ScoringMode.values[TruthDareSettingsCache.scoringModeIndex!];
+      skipBehavior =
+          SkipBehavior.values[TruthDareSettingsCache.skipBehaviorIndex!];
+    }
+
+    allowSwitch = TruthDareSettingsCache.allowSwitch ?? allowSwitch;
+    limitSkips = TruthDareSettingsCache.limitSkips ?? limitSkips;
+    maxSkipsPerPlayer =
+        TruthDareSettingsCache.maxSkipsPerPlayer ?? maxSkipsPerPlayer;
+
+    final cachedNames = TruthDareSettingsCache.playerNames;
+    if (cachedNames != null) {
+      for (int i = 0; i < cachedNames.length; i++) {
+        _nameControllers[i].text = cachedNames[i];
+      }
+    }
+  }
+
+  @override
   void dispose() {
     for (final c in _nameControllers) {
       c.dispose();
@@ -36,47 +79,23 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
     super.dispose();
   }
 
-  // ✅ HOW TO PLAY
-  void _showHowToPlay() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.black87,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          "How to Play Truth or Dare",
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const SingleChildScrollView(
-          child: Text(
-            "🎯 GAME FLOW\n"
-            "• One player is selected.\n"
-            "• Choose TRUTH or DARE.\n\n"
-            "💎 SCORING\n"
-            "• Success = +1 point\n"
-            "• Failure = -1 point\n\n"
-            "⏭ SKIPS\n"
-            "• Depends on skip mode.\n\n"
-            "🏁 GAME END\n"
-            "• Game ends when you press STOP.\n",
-            style: TextStyle(color: Colors.white70, height: 1.5),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Got it"),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _startGame() {
     final names = List.generate(playerCount, (i) {
       final txt = _nameControllers[i].text.trim();
       return txt.isEmpty ? 'Player ${i + 1}' : txt;
     });
+
+    TruthDareSettingsCache.save(
+      playerCount: playerCount,
+      playerNames: names,
+      categoryIndex: category.index,
+      turnModeIndex: turnMode.index,
+      scoringModeIndex: scoringMode.index,
+      skipBehaviorIndex: skipBehavior.index,
+      allowSwitch: allowSwitch,
+      limitSkips: limitSkips,
+      maxSkipsPerPlayer: maxSkipsPerPlayer,
+    );
 
     final config = TruthDareGameConfig(
       playerCount: playerCount,
@@ -98,6 +117,19 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ FILTER CATEGORY LIST BY ADULT MODE
+    final allowedCategories = TruthDareCategory.values.where((c) {
+      if (c == TruthDareCategory.adult) {
+        return AppSettings.instance.adultEnabled;
+      }
+      return true;
+    }).toList();
+
+    // ✅ FORCED SAFETY IF ADULT WAS PREVIOUSLY SELECTED
+    if (!allowedCategories.contains(category)) {
+      category = TruthDareCategory.friends;
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -111,31 +143,6 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
           child: Column(
             children: [
               const SizedBox(height: 12),
-
-              // ✅ HEADER
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "TRUTH OR DARE",
-                      style: TextStyle(
-                        letterSpacing: 3,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: _showHowToPlay,
-                      icon: const Icon(Icons.info_outline, color: Colors.white),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 14),
 
               Expanded(
                 child: SingleChildScrollView(
@@ -199,7 +206,7 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
                             _dropdown(
                               "Category",
                               category,
-                              TruthDareCategory.values,
+                              allowedCategories, // ✅ FILTERED
                               (v) => setState(() => category = v),
                             ),
                             if (category == TruthDareCategory.custom)
@@ -294,7 +301,6 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
                 ),
               ),
 
-              // ✅ NEON START BUTTON
               Padding(
                 padding: const EdgeInsets.only(bottom: 18),
                 child: GestureDetector(

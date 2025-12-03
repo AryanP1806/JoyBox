@@ -5,7 +5,7 @@ import '../../theme/party_theme.dart';
 import '../../widgets/party_button.dart';
 import '../../widgets/party_card.dart';
 import '../../core/safe_nav.dart';
-
+import 'mafia_settings_cache.dart';
 import 'mafia_models.dart';
 import 'mafia_kill_screen.dart';
 import 'mafia_setup.dart';
@@ -138,13 +138,15 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
                     text: "BACK TO HOME",
                     gradient: PartyGradients.truth,
                     onTap: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const MafiaSetupScreen(),
-                        ),
-                        (route) => false,
-                      );
+                      // SafeNav.goHome(context);
+                      Navigator.pop(context);
+                      // Navigator.pushAndRemoveUntil(
+                      //   context,
+                      //   MaterialPageRoute(
+                      //     builder: (_) => const MafiaSetupScreen(),
+                      //   ),
+                      //   (route) => false,
+                      // );
                     },
                   ),
                 ],
@@ -163,8 +165,6 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
                     text: "START NIGHT",
                     gradient: PartyGradients.dare,
                     onTap: () {
-                      // ✅ Reconstruct a sane config from current players ONLY.
-                      // This avoids touching other files.
                       final names = widget.players.map((p) => p.name).toList();
 
                       final mafiaCount = widget.players
@@ -178,6 +178,14 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
                         (p) => p.role == MafiaRole.detective,
                       );
 
+                      // ✅ pull options from cache, fall back to sensible defaults
+                      final secretVoting =
+                          MafiaSettingsCache.secretVoting ?? false;
+                      final timerEnabled =
+                          MafiaSettingsCache.timerEnabled ?? false;
+                      final timerSeconds =
+                          MafiaSettingsCache.timerSeconds ?? 60;
+
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
@@ -188,10 +196,9 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
                               mafiaCount: mafiaCount.clamp(1, names.length - 1),
                               hasDoctor: hasDoctor,
                               hasDetective: hasDetective,
-                              // You can change these defaults if you want
-                              secretVoting: false,
-                              timerEnabled: false,
-                              timerSeconds: 60,
+                              secretVoting: secretVoting,
+                              timerEnabled: timerEnabled,
+                              timerSeconds: timerSeconds,
                             ),
                           ),
                         ),

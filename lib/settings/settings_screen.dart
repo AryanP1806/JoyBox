@@ -1,3 +1,4 @@
+// settigns screen
 import 'package:flutter/material.dart';
 import '../theme/party_theme.dart';
 import 'app_settings.dart';
@@ -43,6 +44,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             const SizedBox(height: 40),
+
+            // const SizedBox(height: 20),
+            _buildToggle(
+              title: "Adult Mode (18+)",
+              value: settings.adultEnabled,
+              onChanged: () {
+                setState(() => settings.toggleAdultMode());
+              },
+            ),
 
             const Divider(),
 

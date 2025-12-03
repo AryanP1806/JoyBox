@@ -7,6 +7,9 @@ class AppSettings extends ChangeNotifier {
   bool soundEnabled = true;
   bool vibrationEnabled = true;
 
+  // ✅ ADD THIS
+  bool adultEnabled = false;
+
   void toggleSound() {
     soundEnabled = !soundEnabled;
     notifyListeners();
@@ -14,6 +17,12 @@ class AppSettings extends ChangeNotifier {
 
   void toggleVibration() {
     vibrationEnabled = !vibrationEnabled;
+    notifyListeners();
+  }
+
+  // ✅ ADD THIS
+  void toggleAdultMode() {
+    adultEnabled = !adultEnabled;
     notifyListeners();
   }
 }

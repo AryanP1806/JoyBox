@@ -1,26 +1,27 @@
 import 'package:flutter/material.dart';
 import 'party_theme.dart'; // Ensure this points to your theme file
-import '../settings/settings_screen.dart'; // Uncomment if you have this file
+// If you have specific game routes, keep your imports, e.g.:
+// import '../settings/settings_screen.dart';
 
-class PartyHomeScreen extends StatefulWidget {
-  const PartyHomeScreen({super.key});
+class PartyMainScreen extends StatefulWidget {
+  const PartyMainScreen({super.key});
 
   @override
-  State<PartyHomeScreen> createState() => _PartyHomeScreenState();
+  State<PartyMainScreen> createState() => _PartyMainScreenState();
 }
 
-class _PartyHomeScreenState extends State<PartyHomeScreen> {
+class _PartyMainScreenState extends State<PartyMainScreen> {
   int _currentIndex = 0;
 
-  // The list of "Pages" to switch between without a new screen
+  // The list of "Pages" to switch between
   final List<Widget> _pages = [
-    const _HomeView(), // Index 0: Home
+    const _HomeView(), // Index 0
     const _PlaceholderView(
       title: "Saved",
       icon: Icons.bookmark_border,
-    ), // Index 1: Saved
-    const SettingsScreen(), // Index 2: Settings (Updated)
-    const _ProfileView(), // Index 3: Profile
+    ), // Index 1
+    const _PlaceholderView(title: "Settings", icon: Icons.settings), // Index 2
+    const _ProfileView(), // Index 3 (The Profile Code)
   ];
 
   void _onTabTapped(int index) {
@@ -44,7 +45,7 @@ class _PartyHomeScreenState extends State<PartyHomeScreen> {
 }
 
 // ==============================================================================
-// 1. HOME VIEW (Extracted from your original build method)
+// 1. HOME VIEW (Your original Home Screen Logic)
 // ==============================================================================
 
 class _HomeView extends StatelessWidget {
@@ -69,16 +70,6 @@ class _HomeView extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 24),
               children: [
                 _GameCard(
-                  title: "Most Likely To...",
-                  description:
-                      "Vote on who in the group is most likely to do something wild.",
-                  gradientStart: const Color(0xFFFFA726),
-                  gradientEnd: const Color(0xFFFF7043),
-                  emoji: "🤔",
-                  tag: "Party Fun",
-                  onTap: () => Navigator.pushNamed(context, "/mostLikely"),
-                ),
-                _GameCard(
                   title: "Spy",
                   description:
                       "Everyone knows the location—except one. Can you spot the spy?",
@@ -92,8 +83,8 @@ class _HomeView extends StatelessWidget {
                   title: "Mr White",
                   description:
                       "One player got no word. Talk smart and catch the liar.",
-                  gradientStart: const Color(0xFF434343),
-                  gradientEnd: const Color(0xFF000000),
+                  gradientStart: const Color(0xFFF2C94C),
+                  gradientEnd: const Color(0xFFE67E22),
                   emoji: "🤍",
                   tag: "Word Game",
                   onTap: () => Navigator.pushNamed(context, "/mrWhite"),
@@ -147,7 +138,7 @@ class _HomeView extends StatelessWidget {
 }
 
 // ==============================================================================
-// 2. PROFILE VIEW (Integrated directly here)
+// 2. PROFILE VIEW (Adapted for Single Screen)
 // ==============================================================================
 
 class _ProfileView extends StatelessWidget {
@@ -155,6 +146,8 @@ class _ProfileView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Note: We removed the Scaffold/AppBar here because the MainScreen handles the structure.
+    // We used SafeArea to keep it from hitting the status bar.
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -188,132 +181,7 @@ class _ProfileView extends StatelessWidget {
 }
 
 // ==============================================================================
-// 3. SETTINGS VIEW (Integrated)
-// ==============================================================================
-
-class _SettingsView extends StatefulWidget {
-  const _SettingsView();
-
-  @override
-  State<_SettingsView> createState() => _SettingsViewState();
-}
-
-class _SettingsViewState extends State<_SettingsView> {
-  // Using a local mock since AppSettings isn't in this file context
-  final _AppSettings settings = _AppSettings.instance;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: PartyColors.background,
-      appBar: AppBar(
-        title: const Text(
-          "Settings",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: PartyColors.background,
-        elevation: 0,
-        centerTitle: true,
-        automaticallyImplyLeading: false, // Don't show back button in tabs
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _buildToggle(
-              title: "Sound Effects",
-              value: settings.soundEnabled,
-              onChanged: () {
-                setState(() => settings.toggleSound());
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            _buildToggle(
-              title: "Vibration",
-              value: settings.vibrationEnabled,
-              onChanged: () {
-                setState(() => settings.toggleVibration());
-              },
-            ),
-
-            const SizedBox(height: 40),
-
-            _buildToggle(
-              title: "Adult Mode (18+)",
-              value: settings.adultEnabled,
-              onChanged: () {
-                setState(() => settings.toggleAdultMode());
-              },
-            ),
-
-            const SizedBox(height: 24),
-            const Divider(color: PartyColors.textSecondary),
-            const SizedBox(height: 16),
-
-            const Text(
-              "More settings coming soon...",
-              style: TextStyle(color: PartyColors.textSecondary),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToggle({
-    required String title,
-    required bool value,
-    required VoidCallback onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-      decoration: BoxDecoration(
-        color: PartyColors.card,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: PartyColors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const Spacer(),
-          Switch(
-            value: value,
-            activeColor: PartyColors.accentPink,
-            activeTrackColor: PartyColors.accentPink.withOpacity(0.5),
-            inactiveThumbColor: Colors.grey,
-            inactiveTrackColor: Colors.grey.withOpacity(0.3),
-            onChanged: (_) => onChanged(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Simple Mock for AppSettings to make the code functional without external files
-class _AppSettings {
-  static final _AppSettings instance = _AppSettings._();
-  _AppSettings._();
-
-  bool soundEnabled = true;
-  bool vibrationEnabled = true;
-  bool adultEnabled = false;
-
-  void toggleSound() => soundEnabled = !soundEnabled;
-  void toggleVibration() => vibrationEnabled = !vibrationEnabled;
-  void toggleAdultMode() => adultEnabled = !adultEnabled;
-}
-
-// ==============================================================================
-// 4. HELPER WIDGETS
+// 3. HELPER WIDGETS (Home & Profile Components)
 // ==============================================================================
 
 /// TOP AREA: Logo + mode toggle
@@ -928,62 +796,6 @@ class _PlaceholderView extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// (Kept for later if you decide to re-enable it, but NOT used in the layout now)
-class _StartGameNightCard extends StatelessWidget {
-  const _StartGameNightCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
-          ),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Start Game Night",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    "Play a mix of your best games\nback-to-back with one tap.",
-                    style: TextStyle(
-                      color: PartyColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              children: const [
-                Icon(Icons.groups, color: Colors.white, size: 32),
-                SizedBox(height: 6),
-                Icon(Icons.celebration, color: Colors.yellowAccent, size: 26),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

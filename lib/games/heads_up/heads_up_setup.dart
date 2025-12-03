@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'heads_up_models.dart';
 import 'heads_up_game.dart';
+import '../../settings/app_settings.dart';
 
 class HeadsUpSetupScreen extends StatefulWidget {
   const HeadsUpSetupScreen({super.key});
@@ -59,6 +60,18 @@ class _HeadsUpSetupScreenState extends State<HeadsUpSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final durationInt = _durationSlider.round();
+    final allowedPacks = HeadsUpPack.values.where((pack) {
+      if (pack == HeadsUpPack.adult) {
+        return AppSettings.instance.adultEnabled; // ✅ HARD GATE
+      }
+      return true;
+    }).toList();
+
+    // ✅ SAFETY: If cached value was adult but now disabled
+    if (!AppSettings.instance.adultEnabled &&
+        _selectedPack == HeadsUpPack.adult) {
+      _selectedPack = HeadsUpPack.general;
+    }
 
     return Scaffold(
       body: Container(
@@ -113,7 +126,7 @@ class _HeadsUpSetupScreenState extends State<HeadsUpSetupScreen> {
                               dropdownColor: Colors.black,
                               isExpanded: true,
                               value: _selectedPack,
-                              items: HeadsUpPack.values
+                              items: allowedPacks
                                   .map(
                                     (p) => DropdownMenuItem(
                                       value: p,

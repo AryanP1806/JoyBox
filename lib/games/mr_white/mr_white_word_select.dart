@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'mr_white_models.dart';
 import 'mr_white_reveal.dart';
+import '../../settings/app_settings.dart';
 
 class MrWhiteWordSelectScreen extends StatefulWidget {
   final MrWhiteGameConfig config;
@@ -20,147 +21,152 @@ class _MrWhiteWordSelectScreenState extends State<MrWhiteWordSelectScreen> {
   late List<String> localCustomWords;
 
   // ✅ WORD PACKS
-  final Map<String, List<String>> wordPacks = {
-    "Foods": [
-      "Pizza",
-      "Burger",
-      "Pasta",
-      "Biryani",
-      "Noodles",
-      "Ice Cream",
-      "Sandwich",
-      "Cake",
-      "Chocolate",
-      "Momos",
-      "Dosa",
-      "Popcorn",
-      "Pani Puri",
-      "Sushi",
-      "Vada Pav",
-      "Butter Chicken",
-      "Shawarma",
-      "Cheesecake",
-      "Black Coffee",
-    ],
-    "Places": [
-      "Goa",
-      "Hospital",
-      "Airport",
-      "Beach",
-      "Mall",
-      "Temple",
-      "School",
-      "Gym",
-      "Cinema",
-      "Graveyard",
-    ],
-    "Animals": [
-      "Tiger",
-      "Lion",
-      "Elephant",
-      "Dog",
-      "Cat",
-      "Snake",
-      "Panda",
-      "Shark",
-      "Monkey",
-      "Cockroach",
-      "Giraffe",
-      "Kangaroo",
-      "Sloth",
-      "Gorilla",
-      "Mosquito",
-      "Dinosaur",
-      "Penguin",
-      "Peacock",
-      "Platypus",
-    ],
-    "Superheroes": [
-      "Batman",
-      "Superman",
-      "Spiderman",
-      "Ironman",
-      "Thor",
-      "Hulk",
-      "Deadpool",
-      "Flash",
-    ],
-    "Sports": [
-      "Cricket",
-      "Football",
-      "Badminton",
-      "Boxing",
-      "Wrestling",
-      "Basketball",
-      "Tennis",
-      "Swimming",
-    ],
-    "Adults (Party Safe)": [
-      "Dating",
-      "Flirting",
-      "Breakup",
-      "Crush",
-      "Ghosting",
-      "Situationship",
-      "Red Flag",
-      "Walk of Shame",
-      "Friends with Benefits",
-      "Third Wheel",
-      "Catfish",
-      "Toxic Ex",
-      "Drunk Texting",
-      "Love Triangle",
-    ],
-    "Famous People": [
-      "Taylor Swift",
-      "The Rock",
-      "Michael Jackson",
-      "Albert Einstein",
-      "Kim Kardashian",
-      "Donald Trump",
-      "Dhoni",
-      "Deepika Padukone",
-      "Bean",
-      "Hitler",
-    ],
-    "Adult (uncensored)": [
-      "Orgasm",
-      "Threesome",
-      "One Night Stand",
-      "Role Play",
-      "Spanking",
-      "Blindfold",
-      "Cuddle",
-      "Foreplay",
-      "Striptease",
-      "Lap Dance",
-      "Sexting",
-      "Make Out",
-      "Booty Call",
-      "Dirty Talk",
-      "Mutual Masturbation",
-      "Body Count",
-      "Kiss",
-      "Dating",
-      "One Night Stand",
-      "Breakup",
-      "Hookup",
-      "Crush",
-      "Body Count",
-      "Flirting",
-      "Blind Date",
-      "Ex",
-      "Heartbreak",
-      "Dirty Talk",
-      "Friends with Benefits",
-      "Cheating",
-    ],
-  };
+  late final Map<String, List<String>> wordPacks;
 
   @override
   void initState() {
     super.initState();
     localCustomWords = List.from(widget.config.customWords);
+
+    final adultEnabled = AppSettings.instance.adultEnabled;
+
+    wordPacks = {
+      "Foods": [
+        "Pizza",
+        "Burger",
+        "Pasta",
+        "Biryani",
+        "Noodles",
+        "Ice Cream",
+        "Sandwich",
+        "Cake",
+        "Chocolate",
+        "Momos",
+        "Dosa",
+        "Popcorn",
+        "Pani Puri",
+        "Sushi",
+        "Vada Pav",
+        "Butter Chicken",
+        "Shawarma",
+        "Cheesecake",
+        "Black Coffee",
+      ],
+      "Places": [
+        "Goa",
+        "Hospital",
+        "Airport",
+        "Beach",
+        "Mall",
+        "Temple",
+        "School",
+        "Gym",
+        "Cinema",
+        "Graveyard",
+      ],
+      "Animals": [
+        "Tiger",
+        "Lion",
+        "Elephant",
+        "Dog",
+        "Cat",
+        "Snake",
+        "Panda",
+        "Shark",
+        "Monkey",
+        "Cockroach",
+        "Giraffe",
+        "Kangaroo",
+        "Sloth",
+        "Gorilla",
+        "Mosquito",
+        "Dinosaur",
+        "Penguin",
+        "Peacock",
+        "Platypus",
+      ],
+      "Superheroes": [
+        "Batman",
+        "Superman",
+        "Spiderman",
+        "Ironman",
+        "Thor",
+        "Hulk",
+        "Deadpool",
+        "Flash",
+      ],
+      "Sports": [
+        "Cricket",
+        "Football",
+        "Badminton",
+        "Boxing",
+        "Wrestling",
+        "Basketball",
+        "Tennis",
+        "Swimming",
+      ],
+
+      "Famous People": [
+        "Taylor Swift",
+        "The Rock",
+        "Michael Jackson",
+        "Albert Einstein",
+        "Kim Kardashian",
+        "Donald Trump",
+        "Dhoni",
+        "Deepika Padukone",
+        "Bean",
+        "Hitler",
+      ],
+
+      // 🔒 ONLY ADDED IF ADULT MODE = TRUE
+      if (adultEnabled)
+        "Adult (uncensored)": [
+          "Orgasm",
+          "Threesome",
+          "One Night Stand",
+          "Role Play",
+          "Spanking",
+          "Blindfold",
+          "Cuddle",
+          "Foreplay",
+          "Striptease",
+          "Lap Dance",
+          "Sexting",
+          "Make Out",
+          "Booty Call",
+          "Dirty Talk",
+          "Mutual Masturbation",
+          "Body Count",
+          "Kiss",
+          "Dating",
+          "Breakup",
+          "Hookup",
+          "Crush",
+          "Flirting",
+          "Blind Date",
+          "Ex",
+          "Heartbreak",
+          "Friends with Benefits",
+          "Cheating",
+        ],
+      if (adultEnabled)
+        "Adults (Party Safe)": [
+          "Dating",
+          "Flirting",
+          "Breakup",
+          "Crush",
+          "Ghosting",
+          "Situationship",
+          "Red Flag",
+          "Walk of Shame",
+          "Third Wheel",
+          "Catfish",
+          "Toxic Ex",
+          "Drunk Texting",
+          "Love Triangle",
+        ],
+    };
   }
 
   void addCustomWord() {
@@ -192,6 +198,15 @@ class _MrWhiteWordSelectScreenState extends State<MrWhiteWordSelectScreen> {
   }
 
   void proceed() {
+    // ✅ HARD BLOCK IF ADULT PACK SELECTED WHILE DISABLED
+    if (!AppSettings.instance.adultEnabled &&
+        selectedPacks.any((p) => p.toLowerCase().contains("adult"))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Adult mode is disabled in settings.")),
+      );
+      return;
+    }
+
     final finalPool = buildFinalWordPool();
 
     if (finalPool.length < 2) {
