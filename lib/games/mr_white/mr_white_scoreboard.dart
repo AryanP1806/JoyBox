@@ -1,9 +1,10 @@
+// lib/games/mr_white/mr_white_scoreboard.dart
 import 'package:flutter/material.dart';
 import 'mr_white_models.dart';
 import 'mr_white_setup.dart';
 import '../../core/safe_nav.dart';
 
-class MrWhiteScoreBoardScreen extends StatelessWidget {
+class MrWhiteScoreBoardScreen extends StatefulWidget {
   final List<MrWhitePlayer> players;
   final bool mrWhiteWonByNumbers;
   final bool civiliansWon;
@@ -17,31 +18,42 @@ class MrWhiteScoreBoardScreen extends StatelessWidget {
     this.mrWhiteGuessCorrect,
   });
 
+  @override
+  State<MrWhiteScoreBoardScreen> createState() =>
+      _MrWhiteScoreBoardScreenState();
+}
+
+class _MrWhiteScoreBoardScreenState extends State<MrWhiteScoreBoardScreen> {
+  bool _scoresApplied = false;
+
   String get winnerText {
-    if (mrWhiteGuessCorrect == true) {
+    if (widget.mrWhiteGuessCorrect == true) {
       return "MR WHITE WINS BY GUESS!";
     }
-    if (mrWhiteGuessCorrect == false) {
+    if (widget.mrWhiteGuessCorrect == false) {
       return "CIVILIANS WIN!";
     }
-    if (mrWhiteWonByNumbers) {
+    if (widget.mrWhiteWonByNumbers) {
       return "MR WHITE WINS BY NUMBERS!";
     }
-    if (civiliansWon) {
+    if (widget.civiliansWon) {
       return "CIVILIANS WIN!";
     }
     return "ROUND COMPLETE";
   }
 
-  void applyScores() {
-    // ✅ FINAL SCORING LOGIC (SAFE + NON-REPEATABLE)
-
-    if (mrWhiteGuessCorrect == true || mrWhiteWonByNumbers) {
-      for (var p in players) {
+  void _applyScores() {
+    // Mr White wins (either by correct guess or by numbers)
+    if (widget.mrWhiteGuessCorrect == true || widget.mrWhiteWonByNumbers) {
+      for (var p in widget.players) {
         if (p.role == "mrwhite") p.score += 2;
       }
-    } else if (mrWhiteGuessCorrect == false || civiliansWon) {
-      for (var p in players) {
+      return;
+    }
+
+    // Civilians win
+    if (widget.mrWhiteGuessCorrect == false || widget.civiliansWon) {
+      for (var p in widget.players) {
         if (p.role == "civilian") p.score += 1;
       }
     }
@@ -49,8 +61,13 @@ class MrWhiteScoreBoardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    applyScores();
-    if (players.isEmpty) {
+    // Make sure scores are only applied once
+    if (!_scoresApplied) {
+      _applyScores();
+      _scoresApplied = true;
+    }
+
+    if (widget.players.isEmpty) {
       SafeNav.goHome(context);
       return const SizedBox.shrink();
     }
@@ -71,7 +88,7 @@ class MrWhiteScoreBoardScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 20),
 
-              // ✅ WINNER TITLE
+              // WINNER TITLE
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 28,
@@ -103,16 +120,16 @@ class MrWhiteScoreBoardScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // ✅ FINAL ROLE + SCORE LIST
+              // FINAL ROLE + SCORE LIST
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 6,
                   ),
-                  itemCount: players.length,
+                  itemCount: widget.players.length,
                   itemBuilder: (context, index) {
-                    final p = players[index];
+                    final p = widget.players[index];
                     final isSpecial = p.role != "civilian";
 
                     return Container(
@@ -190,24 +207,17 @@ class MrWhiteScoreBoardScreen extends StatelessWidget {
 
               const SizedBox(height: 10),
 
-              // ✅ EXIT TO SETUP (NO MORE EMPTY WORD CRASH)
+              // EXIT TO SETUP
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
                 child: GestureDetector(
                   onTap: () {
-                    // ✅ SAFE RESET
-                    for (var p in players) {
+                    // Reset round state
+                    for (var p in widget.players) {
                       p.isAlive = true;
                       p.word = null;
                     }
-
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MrWhiteSetupScreen(),
-                      ),
-                      (route) => false,
-                    );
+                    Navigator.pop(context);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(

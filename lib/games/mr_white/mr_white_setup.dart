@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/safe_nav.dart';
+import 'mr_white_settings_cache.dart';
 
 import 'mr_white_models.dart';
 import 'mr_white_word_select.dart';
@@ -12,16 +13,16 @@ class MrWhiteSetupScreen extends StatefulWidget {
 }
 
 class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
-  int playerCount = 3;
-  int specialCount = 1;
+  // ✅ INITIAL VALUES COME FROM CACHE (IF AVAILABLE)
+  int playerCount = MrWhiteSettingsCache.playerCount ?? 3;
+  int specialCount = MrWhiteSettingsCache.specialCount ?? 1;
 
-  // ✅ MODE SELECTION (FIXED)
-  MrWhiteMode selectedMode = MrWhiteMode.mrWhite;
+  MrWhiteMode selectedMode = MrWhiteSettingsCache.mode ?? MrWhiteMode.mrWhite;
 
-  bool useCustomWords = false;
-  bool timerEnabled = false;
-  bool secretVoting = false;
-  int timerSeconds = 60;
+  bool useCustomWords = MrWhiteSettingsCache.useCustomWords ?? false;
+  bool timerEnabled = MrWhiteSettingsCache.timerEnabled ?? false;
+  int timerSeconds = MrWhiteSettingsCache.timerSeconds ?? 60;
+  bool secretVoting = MrWhiteSettingsCache.secretVoting ?? false;
 
   final List<TextEditingController> nameControllers = [];
 
@@ -55,9 +56,8 @@ class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              SafeNav.safeReplace(context, const MrWhiteSetupScreen());
+              Navigator.of(context).pop();
             },
-
             child: const Text("Got it"),
           ),
         ],
@@ -68,17 +68,33 @@ class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
   @override
   void initState() {
     super.initState();
-    updateControllers();
+    _initControllersFromCache();
+  }
+
+  void _initControllersFromCache() {
+    final cachedNames = MrWhiteSettingsCache.playerNames;
+
+    // No existing controllers yet, so no leaks here.
+    for (int i = 0; i < playerCount; i++) {
+      final c = TextEditingController();
+      if (cachedNames != null && i < cachedNames.length) {
+        c.text = cachedNames[i];
+      }
+      nameControllers.add(c);
+    }
   }
 
   void updateControllers() {
-    for (final c in nameControllers) {
-      c.dispose();
+    // ✅ When slider changes, preserve names when possible.
+    while (nameControllers.length > playerCount) {
+      nameControllers.removeLast().dispose();
     }
-    nameControllers.clear();
-
-    for (int i = 0; i < playerCount; i++) {
+    while (nameControllers.length < playerCount) {
       nameControllers.add(TextEditingController());
+    }
+
+    if (specialCount >= playerCount) {
+      specialCount = 1;
     }
   }
 
@@ -90,9 +106,21 @@ class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
       names.add(text.isEmpty ? "Player ${i + 1}" : text);
     }
 
+    // ✅ SAVE CURRENT SETTINGS TO CACHE (SO NEXT TIME SETUP RESTORES THEM)
+    MrWhiteSettingsCache.save(
+      playerCount: playerCount,
+      specialCount: specialCount,
+      mode: selectedMode,
+      useCustomWords: useCustomWords,
+      timerEnabled: timerEnabled,
+      timerSeconds: timerSeconds,
+      secretVoting: secretVoting,
+      playerNames: names,
+    );
+
     final config = MrWhiteGameConfig(
       playerCount: playerCount,
-      mode: selectedMode, // ✅ FIXED
+      mode: selectedMode,
       specialCount: specialCount,
       useCustomWords: useCustomWords,
       timerEnabled: timerEnabled,
@@ -164,7 +192,7 @@ class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      // ✅ MODE SELECTION (NEW)
+                      // ✅ MODE SELECTION
                       _panel(
                         title: "GAME MODE",
                         child: Row(
@@ -211,9 +239,6 @@ class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
                               onChanged: (v) {
                                 setState(() {
                                   playerCount = v.toInt();
-                                  if (specialCount >= playerCount) {
-                                    specialCount = 1;
-                                  }
                                   updateControllers();
                                 });
                               },

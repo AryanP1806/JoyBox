@@ -1,3 +1,4 @@
+// lib/games/mr_white/mr_white_role_reveal.dart
 import 'package:flutter/material.dart';
 import 'mr_white_models.dart';
 import 'mr_white_final_guess.dart';
@@ -30,8 +31,8 @@ class _MrWhiteRoleRevealScreenState extends State<MrWhiteRoleRevealScreen>
   int get aliveCivilians =>
       widget.players.where((p) => p.role == "civilian" && p.isAlive).length;
 
-  int get aliveSpecial =>
-      widget.players.where((p) => p.role != "civilian" && p.isAlive).length;
+  int get aliveMrWhites =>
+      widget.players.where((p) => p.role == "mrwhite" && p.isAlive).length;
 
   @override
   void initState() {
@@ -64,7 +65,26 @@ class _MrWhiteRoleRevealScreenState extends State<MrWhiteRoleRevealScreen>
   void _continue(BuildContext context) {
     final isMrWhite = widget.eliminatedPlayer.role == "mrwhite";
 
+    // 🔴 Eliminated player is MR WHITE
     if (isMrWhite) {
+      // Check how many Mr Whites remain alive AFTER this elimination
+      final remainingMrWhites = aliveMrWhites;
+
+      if (remainingMrWhites > 0) {
+        // There are still other Mr Whites alive → game continues
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MrWhiteDiscussionScreen(
+              players: widget.players,
+              config: widget.config,
+            ),
+          ),
+        );
+        return;
+      }
+
+      // This was the LAST Mr White → give final guess
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -74,20 +94,13 @@ class _MrWhiteRoleRevealScreenState extends State<MrWhiteRoleRevealScreen>
       return;
     }
 
-    if (aliveSpecial >= aliveCivilians) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MrWhiteScoreBoardScreen(
-            players: widget.players,
-            mrWhiteWonByNumbers: true,
-          ),
-        ),
-      );
-      return;
-    }
+    // 🟢 Eliminated player is NOT Mr White
 
-    if (aliveSpecial == 0) {
+    final remainingMrWhites = aliveMrWhites;
+    final remainingCivilians = aliveCivilians;
+
+    // If no Mr Whites left → civilians win
+    if (remainingMrWhites == 0) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -100,6 +113,21 @@ class _MrWhiteRoleRevealScreenState extends State<MrWhiteRoleRevealScreen>
       return;
     }
 
+    // If Mr Whites >= civilians → Mr Whites win by numbers
+    if (remainingMrWhites >= remainingCivilians) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MrWhiteScoreBoardScreen(
+            players: widget.players,
+            mrWhiteWonByNumbers: true,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Otherwise, continue to next discussion round
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -115,7 +143,6 @@ class _MrWhiteRoleRevealScreenState extends State<MrWhiteRoleRevealScreen>
   Widget build(BuildContext context) {
     final roleText = widget.eliminatedPlayer.role.toUpperCase();
     final isCivilian = widget.eliminatedPlayer.role == "civilian";
-
     final roleColor = isCivilian ? Colors.greenAccent : Colors.redAccent;
 
     return Scaffold(
@@ -160,9 +187,7 @@ class _MrWhiteRoleRevealScreenState extends State<MrWhiteRoleRevealScreen>
                             letterSpacing: 1,
                           ),
                         ),
-
                         const SizedBox(height: 18),
-
                         Text(
                           roleText,
                           textAlign: TextAlign.center,
@@ -179,9 +204,7 @@ class _MrWhiteRoleRevealScreenState extends State<MrWhiteRoleRevealScreen>
                             ],
                           ),
                         ),
-
                         const SizedBox(height: 18),
-
                         const Text(
                           "WAS ELIMINATED",
                           style: TextStyle(
@@ -190,9 +213,7 @@ class _MrWhiteRoleRevealScreenState extends State<MrWhiteRoleRevealScreen>
                             letterSpacing: 2,
                           ),
                         ),
-
                         const SizedBox(height: 40),
-
                         GestureDetector(
                           onTap: () => _continue(context),
                           child: Container(
