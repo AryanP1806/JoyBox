@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'mr_white_models.dart';
 import 'mr_white_setup.dart';
+import '../../core/safe_nav.dart';
 
 class MrWhiteScoreBoardScreen extends StatelessWidget {
   final List<MrWhitePlayer> players;
@@ -49,6 +50,10 @@ class MrWhiteScoreBoardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     applyScores();
+    if (players.isEmpty) {
+      SafeNav.goHome(context);
+      return const SizedBox.shrink();
+    }
 
     return Scaffold(
       body: Container(

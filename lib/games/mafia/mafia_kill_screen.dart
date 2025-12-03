@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../theme/party_theme.dart';
 import '../../widgets/party_button.dart';
+import '../../core/safe_nav.dart';
 
 import 'mafia_models.dart';
 import 'mafia_doctor_screen.dart';
 import 'mafia_detective_screen.dart';
 import 'mafia_night_result.dart';
+import 'mafia_win_check.dart';
 
 class MafiaKillScreen extends StatefulWidget {
   final List<MafiaPlayer> players;
@@ -28,7 +30,14 @@ class _MafiaKillScreenState extends State<MafiaKillScreen> {
   @override
   Widget build(BuildContext context) {
     final alive = widget.players.where((p) => p.isAlive).toList();
-
+    if (alive.isEmpty) {
+      // no one alive → just go to win check
+      SafeNav.safeReplace(
+        context,
+        MafiaWinCheckScreen(players: widget.players),
+      );
+      return const SizedBox.shrink();
+    }
     return Scaffold(
       backgroundColor: PartyColors.background,
       appBar: AppBar(

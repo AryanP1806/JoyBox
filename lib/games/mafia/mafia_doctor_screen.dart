@@ -77,7 +77,10 @@ class _MafiaDoctorScreenState extends State<MafiaDoctorScreen> {
   @override
   Widget build(BuildContext context) {
     final alive = widget.players.where((p) => p.isAlive).toList();
-
+    if (alive.isEmpty) {
+      _skipDoctor(); // or _skipDetective();
+      return const SizedBox.shrink();
+    }
     return Scaffold(
       backgroundColor: PartyColors.background,
       appBar: AppBar(
@@ -111,7 +114,7 @@ class _MafiaDoctorScreenState extends State<MafiaDoctorScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Colors.green.withOpacity(0.25)
+                          ? Colors.green.withValues(alpha: 0.25)
                           : PartyColors.card,
                       borderRadius: BorderRadius.circular(14),
                       border: isSelected

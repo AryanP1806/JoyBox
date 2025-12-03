@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'mr_white_models.dart';
 import 'mr_white_discussion.dart';
+import '../../core/safe_nav.dart';
 
 class MrWhiteRevealScreen extends StatefulWidget {
   final MrWhiteGameConfig config;
@@ -49,7 +50,11 @@ class _MrWhiteRevealScreenState extends State<MrWhiteRevealScreen>
     final names = widget.config.playerNames;
 
     if (widget.config.customWords.isEmpty) {
-      throw Exception("Custom word list is EMPTY. Add words first.");
+      // Instead of crashing, send user back to setup
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SafeNav.goHome(context);
+      });
+      return [];
     }
 
     List<String> roles = List.filled(widget.config.playerCount, "civilian");
@@ -118,6 +123,10 @@ class _MrWhiteRevealScreenState extends State<MrWhiteRevealScreen>
     final player = players[currentIndex];
     final isSpecial = player.role != "civilian";
 
+    if (players.isEmpty) {
+      // We already redirected in init; just avoid build crashes
+      return const Scaffold(body: Center(child: Text("Returning to setup...")));
+    }
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(title: const Text("Role Reveal")),

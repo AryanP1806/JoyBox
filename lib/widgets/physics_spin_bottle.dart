@@ -36,9 +36,12 @@ class _PhysicsSpinBottleState extends State<PhysicsSpinBottle>
     _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
         await _audio.play(AssetSource("sounds/spin.mp3"));
-        if (await Vibration.hasVibrator() ?? false) {
-          Vibration.vibrate(duration: 120);
-        }
+        // if (await Vibration.hasVibrator() ?? false) {
+        //   Vibration.vibrate(duration: 120);
+        // }
+        Vibration.hasVibrator().then((has) {
+          if (has == true) Vibration.vibrate(duration: 160);
+        });
 
         widget.onSpinEnd();
       }
@@ -60,7 +63,7 @@ class _PhysicsSpinBottleState extends State<PhysicsSpinBottle>
       onTap: spin,
       child: AnimatedBuilder(
         animation: _rotation,
-        builder: (_, __) {
+        builder: (_, _) {
           return Transform.rotate(
             angle: _rotation.value,
             child: Image.asset(

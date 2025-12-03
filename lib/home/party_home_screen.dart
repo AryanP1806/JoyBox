@@ -75,6 +75,16 @@ class PartyHomeScreen extends StatelessWidget {
                     tag: "Act It Out",
                     onTap: () => Navigator.pushNamed(context, "/headsUp"),
                   ),
+                  _GameCard(
+                    title: "Wink Assassin",
+                    description:
+                        "One killer. One detective. Only a single accusation to save everyone.",
+                    gradientStart: const Color(0xFF41295A), // dark purple
+                    gradientEnd: const Color(0xFF2F0743), // assassin vibe
+                    emoji: "🗡️",
+                    tag: "Bluff Game",
+                    onTap: () => Navigator.pushNamed(context, "/assassin"),
+                  ),
                 ],
               ),
             ),
@@ -110,7 +120,7 @@ class _Header extends StatelessWidget {
                   shadows: [
                     Shadow(
                       blurRadius: 12,
-                      color: PartyColors.accentYellow.withOpacity(0.7),
+                      color: PartyColors.accentYellow.withValues(alpha: 0.7),
                     ),
                   ],
                 ),
@@ -134,7 +144,7 @@ class _Header extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             child: const Row(
               children: [
-                Icon(Icons.dark_mode, size: 18, color: Colors.white),
+                // Icon(Icons.dark_mode, size: 18, color: Colors.white),
                 SizedBox(width: 4),
                 Text(
                   "Aryan Pore",
@@ -183,7 +193,7 @@ class _SearchBar extends StatelessWidget {
             ),
             Container(
               decoration: BoxDecoration(
-                color: PartyColors.accentCyan.withOpacity(0.15),
+                color: PartyColors.accentCyan.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(999),
               ),
               padding: const EdgeInsets.all(8),
@@ -346,7 +356,7 @@ class _GameCard extends StatelessWidget {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.18),
+                    color: Colors.black.withValues(alpha: 0.18),
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
@@ -384,7 +394,7 @@ class _GameCard extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.25),
+                          color: Colors.black.withValues(alpha: 0.25),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(

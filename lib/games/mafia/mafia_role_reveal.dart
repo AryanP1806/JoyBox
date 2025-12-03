@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../core/safe_nav.dart';
 
 import 'mafia_models.dart';
 import 'mafia_kill_screen.dart';
@@ -26,7 +27,12 @@ class _MafiaRoleRevealScreenState extends State<MafiaRoleRevealScreen>
   void initState() {
     super.initState();
     players = _generatePlayers();
-
+    if (players.isEmpty) {
+      // invalid config, bail out
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SafeNav.goHome(context);
+      });
+    }
     _flipController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 550),
@@ -120,6 +126,11 @@ class _MafiaRoleRevealScreenState extends State<MafiaRoleRevealScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (players.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text("No players. Returning to home...")),
+      );
+    }
     final p = player;
 
     return Scaffold(

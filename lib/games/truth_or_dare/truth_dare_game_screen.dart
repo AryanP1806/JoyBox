@@ -6,6 +6,7 @@ import '../../widgets/party_button.dart';
 import '../../widgets/party_card.dart';
 import '../../audio/sound_manager.dart';
 import '../../widgets/physics_spin_bottle.dart';
+import '../../core/safe_nav.dart';
 
 import 'truth_dare_models.dart';
 import 'truth_dare_packs.dart';
@@ -143,14 +144,18 @@ class _TruthDareGameScreenState extends State<TruthDareGameScreen>
     });
   }
 
-  void _skip() {
-    _selectNextPlayer();
-  }
+  // void _skip() {
+  //   _selectNextPlayer();
+  // }
 
   @override
   Widget build(BuildContext context) {
     if (loadingPacks) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (players.isEmpty) {
+      SafeNav.goHome(context);
+      return const SizedBox.shrink();
     }
 
     final player = currentPlayer;
@@ -162,139 +167,144 @@ class _TruthDareGameScreenState extends State<TruthDareGameScreen>
     //     fontWeight: FontWeight.bold,
     //   ),
     // );
-
-    return Scaffold(
-      backgroundColor: PartyColors.background,
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async {
+        SafeNav.goHome(context);
+        return false; // block normal back
+      },
+      child: Scaffold(
         backgroundColor: PartyColors.background,
+        appBar: AppBar(
+          backgroundColor: PartyColors.background,
 
-        title: const Text("Truth or Dare"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.stop),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TruthDareResultsScreen(players: players),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            PhysicsSpinBottle(
-              onSpinEnd: () {
-                _selectNextPlayer(); // ✅ Sync bottle stop → player selection
-              },
-            ),
-
-            Text(
-              "It's ${player.name}'s Turn",
-              style: const TextStyle(
-                color: PartyColors.textPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 30),
-            Text(
-              "Score: ${player.score}",
-              style: const TextStyle(
-                color: PartyColors.accentYellow,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            AnimatedBuilder(
-              animation: _flipAnimation,
-              builder: (_, child) {
-                final angle = _flipAnimation.value * pi;
-
-                final isBack = angle > pi / 2;
-
-                return Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001)
-                    ..rotateY(angle),
-                  child: isBack
-                      ? Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.rotationY(pi),
-                          child: child,
-                        )
-                      : child,
+          title: const Text("Truth or Dare"),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.stop),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TruthDareResultsScreen(players: players),
+                  ),
                 );
               },
-              child: PartyCard(
-                child: Center(
-                  child: currentQuestion == null
-                      ? const Text(
-                          "Choose Truth or Dare",
-                          style: TextStyle(fontSize: 22, color: Colors.white),
-                        )
-                      : Text(
-                          currentQuestion!.text,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+            ),
+          ],
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              PhysicsSpinBottle(
+                onSpinEnd: () {
+                  _selectNextPlayer(); // ✅ Sync bottle stop → player selection
+                },
+              ),
+
+              Text(
+                "It's ${player.name}'s Turn",
+                style: const TextStyle(
+                  color: PartyColors.textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
 
-            const SizedBox(height: 40),
+              const SizedBox(height: 30),
+              Text(
+                "Score: ${player.score}",
+                style: const TextStyle(
+                  color: PartyColors.accentYellow,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              AnimatedBuilder(
+                animation: _flipAnimation,
+                builder: (_, child) {
+                  final angle = _flipAnimation.value * pi;
 
-            if (currentQuestion == null)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  PartyButton(
-                    text: "TRUTH",
-                    gradient: PartyGradients.truth,
-                    onTap: _pickTruth,
+                  final isBack = angle > pi / 2;
+
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001)
+                      ..rotateY(angle),
+                    child: isBack
+                        ? Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.rotationY(pi),
+                            child: child,
+                          )
+                        : child,
+                  );
+                },
+                child: PartyCard(
+                  child: Center(
+                    child: currentQuestion == null
+                        ? const Text(
+                            "Choose Truth or Dare",
+                            style: TextStyle(fontSize: 22, color: Colors.white),
+                          )
+                        : Text(
+                            currentQuestion!.text,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
-                  PartyButton(
-                    text: "DARE",
-                    gradient: PartyGradients.dare,
-                    onTap: _pickDare,
-                  ),
-                ],
+                ),
               ),
 
-            if (currentQuestion != null) const SizedBox(height: 30),
+              const SizedBox(height: 40),
 
-            if (currentQuestion != null)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  PartyButton(
-                    text: "DONE",
-                    gradient: PartyGradients.truth,
-                    onTap: _confirmCompleted,
-                  ),
-                  // PartyButton(
-                  //   text: "FAILED",
-                  //   gradient: PartyGradients.dare,
-                  //   onTap: _skip,
-                  // ),
-                  PartyButton(
-                    text: "FAILED",
-                    gradient: PartyGradients.dare,
-                    onTap: _failed,
-                  ),
-                ],
-              ),
-          ],
+              if (currentQuestion == null)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    PartyButton(
+                      text: "TRUTH",
+                      gradient: PartyGradients.truth,
+                      onTap: _pickTruth,
+                    ),
+                    PartyButton(
+                      text: "DARE",
+                      gradient: PartyGradients.dare,
+                      onTap: _pickDare,
+                    ),
+                  ],
+                ),
+
+              if (currentQuestion != null) const SizedBox(height: 30),
+
+              if (currentQuestion != null)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    PartyButton(
+                      text: "DONE",
+                      gradient: PartyGradients.truth,
+                      onTap: _confirmCompleted,
+                    ),
+                    // PartyButton(
+                    //   text: "FAILED",
+                    //   gradient: PartyGradients.dare,
+                    //   onTap: _skip,
+                    // ),
+                    PartyButton(
+                      text: "FAILED",
+                      gradient: PartyGradients.dare,
+                      onTap: _failed,
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

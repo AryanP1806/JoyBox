@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:math';
-
+import '../../core/safe_nav.dart';
 import 'truth_dare_models.dart';
 import 'truth_dare_setup_screen.dart';
 import '../../theme/party_theme.dart';
@@ -35,6 +35,12 @@ class _TruthDareResultsScreenState extends State<TruthDareResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ SAFETY GUARD – NO CRASH IF EMPTY
+    if (widget.players.isEmpty) {
+      SafeNav.goHome(context);
+      return const SizedBox.shrink();
+    }
+
     final sortedPlayers = [...widget.players]
       ..sort((a, b) => b.score.compareTo(a.score));
 
@@ -76,7 +82,7 @@ class _TruthDareResultsScreenState extends State<TruthDareResultsScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.yellow.withOpacity(0.9),
+                        color: Colors.yellow.withValues(alpha: 0.9), // ✅ FIXED
                         blurRadius: 25,
                         spreadRadius: 2,
                       ),

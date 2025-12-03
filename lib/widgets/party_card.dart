@@ -16,7 +16,7 @@ class PartyCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: PartyColors.accentPink.withOpacity(0.35),
+            color: PartyColors.accentPink.withValues(alpha: 0.35),
             blurRadius: 20,
             spreadRadius: 2,
           ),

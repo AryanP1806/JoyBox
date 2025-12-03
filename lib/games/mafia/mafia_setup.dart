@@ -298,7 +298,7 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.redAccent.withOpacity(0.9),
+                          color: Colors.redAccent.withValues(alpha: 0.9),
                           blurRadius: 20,
                         ),
                       ],
@@ -329,7 +329,7 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
       margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.35),
+        color: Colors.black.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white12),
       ),

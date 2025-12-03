@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'mr_white_models.dart';
 import 'mr_white_scoreboard.dart';
+import '../../core/safe_nav.dart';
 
 class MrWhiteFinalGuessScreen extends StatefulWidget {
   final List<MrWhitePlayer> players;
@@ -19,8 +20,20 @@ class _MrWhiteFinalGuessScreenState extends State<MrWhiteFinalGuessScreen> {
   @override
   void initState() {
     super.initState();
-    // Take any civilian's word as the "true" word
-    correctWord = widget.players.firstWhere((p) => p.role == "civilian").word!;
+
+    final civilian = widget.players.firstWhere(
+      (p) => p.role == "civilian" && p.word != null,
+      orElse: () => MrWhitePlayer(name: "TEMP", role: "civilian"),
+    );
+
+    if (civilian.word == null) {
+      // something is broken, go home
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SafeNav.goHome(context);
+      });
+    } else {
+      correctWord = civilian.word!;
+    }
   }
 
   @override
@@ -48,6 +61,12 @@ class _MrWhiteFinalGuessScreenState extends State<MrWhiteFinalGuessScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (correctWord.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text("Error: no word found. Returning...")),
+      );
+    }
+
     return Scaffold(
       // Dark cinematic background
       body: Container(

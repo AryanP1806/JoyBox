@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import '../../theme/party_theme.dart';
 import '../../widgets/party_button.dart';
 import '../../widgets/party_card.dart';
+import '../../core/safe_nav.dart';
 
 import 'mafia_models.dart';
 import 'mafia_kill_screen.dart';
@@ -31,6 +32,7 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
   void initState() {
     super.initState();
 
+    // ✅ Basic safety: if somehow empty, just bail out in build()
     aliveMafia = widget.players
         .where((p) => p.isAlive && p.role == MafiaRole.mafia)
         .length;
@@ -41,7 +43,7 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
 
     if (aliveMafia == 0) {
       winnerText = "CIVILIANS WIN";
-    } else if (aliveMafia >= aliveCivilians) {
+    } else if (aliveMafia >= aliveCivilians && aliveCivilians > 0) {
       winnerText = "MAFIA WINS";
     }
 
@@ -65,6 +67,12 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Hard safety: if something went wrong and list is empty, go home
+    if (widget.players.isEmpty) {
+      SafeNav.goHome(context);
+      return const SizedBox.shrink();
+    }
+
     return Scaffold(
       backgroundColor: PartyColors.background,
       body: Center(
@@ -72,7 +80,7 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ✅ NEON TROPHY
+                  // 🏆 NEON TROPHY
                   AnimatedBuilder(
                     animation: _glowController,
                     builder: (_, child) {
@@ -102,6 +110,7 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
                       children: [
                         Text(
                           winnerText!,
+                          textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -113,6 +122,7 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
                           winnerText!.contains("MAFIA")
                               ? "Deception wins the night."
                               : "Justice prevails.",
+                          textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white70,
@@ -153,18 +163,32 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
                     text: "START NIGHT",
                     gradient: PartyGradients.dare,
                     onTap: () {
+                      // ✅ Reconstruct a sane config from current players ONLY.
+                      // This avoids touching other files.
+                      final names = widget.players.map((p) => p.name).toList();
+
+                      final mafiaCount = widget.players
+                          .where((p) => p.role == MafiaRole.mafia)
+                          .length;
+
+                      final hasDoctor = widget.players.any(
+                        (p) => p.role == MafiaRole.doctor,
+                      );
+                      final hasDetective = widget.players.any(
+                        (p) => p.role == MafiaRole.detective,
+                      );
+
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder: (_) => MafiaKillScreen(
                             players: widget.players,
                             config: MafiaGameConfig(
-                              players: widget.players
-                                  .map((e) => e.name)
-                                  .toList(),
-                              mafiaCount: 1,
-                              hasDoctor: true,
-                              hasDetective: true,
+                              players: names,
+                              mafiaCount: mafiaCount.clamp(1, names.length - 1),
+                              hasDoctor: hasDoctor,
+                              hasDetective: hasDetective,
+                              // You can change these defaults if you want
                               secretVoting: false,
                               timerEnabled: false,
                               timerSeconds: 60,

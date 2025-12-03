@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
-
+import '../../core/safe_nav.dart';
+import '../../widgets/pulse_timer_text.dart';
 // Assuming these exist in your project structure
 import 'heads_up_models.dart';
 import 'heads_up_results.dart';
@@ -66,8 +67,16 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen>
 
     _timeLeft = widget.config.durationSeconds;
     _wordPool = List<String>.from(widget.config.getShuffledWords());
+    if (_wordPool.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("No words in this pack.")));
+        SafeNav.goHome(context);
+      });
+      return;
+    }
     _wordPool.shuffle();
-
     _nextWord();
     _startTimer();
     _startAccelerometer(); // CHANGED: Start the new sensor logic
@@ -247,7 +256,11 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen>
             // ✅ NEON TOP BAR
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [_neonText("⏳ $_timeLeft"), _neonText("🔥 $_score")],
+              children: [
+                // _neonText("⏳ $_timeLeft"), _neonText("🔥 $_score"),
+                PulseTimerText(text: "⏳$_timeLeft", color: Colors.cyanAccent),
+                PulseTimerText(text: "🔥$_score", color: Colors.cyanAccent),
+              ],
             ),
 
             const Spacer(),
@@ -268,7 +281,7 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen>
                     BoxShadow(color: Colors.cyan, blurRadius: 25),
                   ],
                   border: Border.all(
-                    color: Colors.cyan.withOpacity(0.5),
+                    color: Colors.cyan.withValues(alpha: 0.5),
                     width: 1,
                   ),
                 ),
@@ -328,7 +341,7 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen>
     return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
-        backgroundColor: color.withOpacity(0.2),
+        backgroundColor: color.withValues(alpha: 0.2),
         foregroundColor: color,
         side: BorderSide(color: color),
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),

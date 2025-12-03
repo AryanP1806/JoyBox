@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'mr_white_models.dart';
 import 'mr_white_role_reveal.dart';
+import '../../core/safe_nav.dart';
 
 class MrWhiteDiscussionScreen extends StatefulWidget {
   final List<MrWhitePlayer> players;
@@ -101,7 +102,10 @@ class _MrWhiteDiscussionScreenState extends State<MrWhiteDiscussionScreen> {
   @override
   Widget build(BuildContext context) {
     final alive = widget.players.where((p) => p.isAlive).toList();
-
+    if (alive.isEmpty) {
+      SafeNav.goHome(context);
+      return const SizedBox.shrink();
+    }
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(title: const Text("Discussion & Voting")),

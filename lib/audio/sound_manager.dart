@@ -7,9 +7,9 @@ class SoundManager {
 
   static Future<void> _vibrate() async {
     if (!AppSettings.instance.vibrationEnabled) return;
-    if (await Vibration.hasVibrator() ?? false) {
-      Vibration.vibrate(duration: 40);
-    }
+    Vibration.hasVibrator().then((has) {
+      if (has == true) Vibration.vibrate(duration: 40);
+    });
   }
 
   static Future<void> playTap() async {

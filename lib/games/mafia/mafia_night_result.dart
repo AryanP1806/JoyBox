@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/party_theme.dart';
 import '../../widgets/party_card.dart';
 import '../../widgets/party_button.dart';
+import '../../core/safe_nav.dart';
 
 import 'mafia_models.dart';
 import 'mafia_day_phase.dart';
@@ -60,6 +61,10 @@ class _MafiaNightResultScreenState extends State<MafiaNightResultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.players.isEmpty) {
+      SafeNav.goHome(context);
+      return const SizedBox.shrink();
+    }
     return Scaffold(
       backgroundColor: PartyColors.background,
       appBar: AppBar(

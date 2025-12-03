@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/safe_nav.dart';
+
 import 'mr_white_models.dart';
 import 'mr_white_word_select.dart';
 
@@ -52,7 +54,10 @@ class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              SafeNav.safeReplace(context, const MrWhiteSetupScreen());
+            },
+
             child: const Text("Got it"),
           ),
         ],

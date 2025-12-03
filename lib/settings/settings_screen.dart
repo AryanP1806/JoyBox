@@ -82,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Spacer(),
           Switch(
             value: value,
-            activeColor: PartyColors.accentPink,
+            activeThumbColor: PartyColors.accentPink,
             onChanged: (_) => onChanged(),
           ),
         ],
