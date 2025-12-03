@@ -54,16 +54,14 @@ class MostLikelyResultsScreen extends StatelessWidget {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MostLikelySetupScreen(),
-                  ),
-                );
-              },
-              child: const Text("PLAY AGAIN"),
-            ),
+  onPressed: () {
+    Navigator.pop(context); // Go back to Game
+    // Navigator.pop(context); // Go back to Setup
+    
+  },
+  child: const Text("PLAY AGAIN"),
+),
+
           ],
         ),
       ),

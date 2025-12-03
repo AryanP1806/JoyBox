@@ -105,9 +105,12 @@ class _MostLikelySetupScreenState extends State<MostLikelySetupScreen> {
         ? selectedPacks
         : selectedPacks.where((p) => !p.isAdult).toList();
 
+    // final names = List.generate(playerCount, (i) {
+    //   final t = _nameControllers[i].text.trim();
+    //   return t; // ✅ return t.isEmpty ? "Player ${i + 1}" : t;
+    // });
     final names = List.generate(playerCount, (i) {
-      final t = _nameControllers[i].text.trim();
-      return t.isEmpty ? "Player ${i + 1}" : t;
+      return _nameControllers[i].text.trim(); // ✅ only real input saved
     });
 
     final config = MostLikelyGameConfig(
@@ -137,7 +140,7 @@ class _MostLikelySetupScreenState extends State<MostLikelySetupScreen> {
           : null,
     );
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => MostLikelyGameScreen(config: config)),
     );
@@ -159,17 +162,49 @@ class _MostLikelySetupScreenState extends State<MostLikelySetupScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              const SizedBox(height: 14),
-              const Text(
-                "WHO'S MOST LIKELY",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(height: 14),
+                    const Text(
+                      "WHO'S MOST LIKELY",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.info_outline, color: Colors.white),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            backgroundColor: Colors.black,
+                            title: const Text(
+                              "How To Play",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            content: const Text(
+                              "1. Read the question\n"
+                              "2. Vote for the most likely person\n"
+                              "3. See who got most votes\n"
+                              "4. Apply punishment if enabled\n"
+                              "5. Continue till game ends",
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                 ),
               ),
-
+              const SizedBox(height: 14),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),

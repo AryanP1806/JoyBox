@@ -31,6 +31,39 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
   bool limitSkips = false;
   int maxSkipsPerPlayer = 2;
 
+  void _showHowToPlay() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("How to Play", style: TextStyle(color: Colors.white)),
+        content: const SingleChildScrollView(
+          child: Text(
+            "🤔 Choose Truth or Dare\n"
+            "👥 Players take turns\n"
+            "✅ Answer truthfully or complete the dare\n"
+            // "🔄 Switch after each question\n"
+            "🔄 Switch players if allowed\n"
+            "⏳ Game ends when all questions are answered\n"
+            "🏆 Score points for each completed task\n"
+            "🚫 Skips may incur penalties\n"
+            "🎉 Have fun and be respectful!",
+            style: TextStyle(color: Colors.white70, height: 1.5),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text("Got it"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -143,6 +176,31 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
           child: Column(
             children: [
               const SizedBox(height: 12),
+
+              // ✅ HEADER
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "TRUTH OR DARE",
+                      style: TextStyle(
+                        letterSpacing: 3,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _showHowToPlay,
+                      icon: const Icon(Icons.info_outline, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 14),
 
               Expanded(
                 child: SingleChildScrollView(

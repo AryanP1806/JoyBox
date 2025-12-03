@@ -34,9 +34,11 @@ class _MostLikelyGameScreenState extends State<MostLikelyGameScreen> {
   void initState() {
     super.initState();
 
-    players = widget.config.playerNames
-        .map((n) => MostLikelyPlayer(name: n))
-        .toList();
+    players = List.generate(widget.config.playerNames.length, (i) {
+      final raw = widget.config.playerNames[i].trim();
+      final displayName = raw.isEmpty ? "Player ${i + 1}" : raw;
+      return MostLikelyPlayer(name: displayName);
+    });
 
     questionPool = MostLikelyPacks.buildQuestionPool(widget.config.packs);
 
@@ -44,6 +46,11 @@ class _MostLikelyGameScreenState extends State<MostLikelyGameScreen> {
 
     _loadNextQuestion();
   }
+
+  // final names = List.generate(playerCount, (i) {
+  //   final t = _nameControllers[i].text.trim();
+  //   return t.isEmpty ? "Player ${i + 1}" : t;
+  // });
 
   void _loadNextQuestion() {
     if (questionPool.isEmpty) return;
@@ -66,9 +73,13 @@ class _MostLikelyGameScreenState extends State<MostLikelyGameScreen> {
   // ---------------- VOTING ----------------
 
   void _voteFor(int votedIndex) {
-    final voterIndex = currentVoterIndex;
+    final isPhonePass =
+        widget.config.votingMode == MostLikelyVotingMode.phonePass;
 
-    if (!widget.config.allowSelfVote && voterIndex == votedIndex) {
+    // ✅ SELF VOTE BLOCK
+    if (isPhonePass &&
+        !widget.config.allowSelfVote &&
+        currentVoterIndex == votedIndex) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("You can't vote for yourself")),
       );
@@ -78,9 +89,17 @@ class _MostLikelyGameScreenState extends State<MostLikelyGameScreen> {
     setState(() {
       votes[votedIndex] = (votes[votedIndex] ?? 0) + 1;
 
-      currentVoterIndex++;
+      // ✅ PHONE PASS = ONE TURN PER PLAYER
+      if (isPhonePass) {
+        currentVoterIndex++;
 
-      if (currentVoterIndex >= players.length) {
+        if (currentVoterIndex >= players.length) {
+          revealPhase = true;
+          _applyScoring();
+        }
+      }
+      // ✅ GROUP VOTING = ONLY ONE VOTE TOTAL
+      else {
         revealPhase = true;
         _applyScoring();
       }
@@ -115,6 +134,7 @@ class _MostLikelyGameScreenState extends State<MostLikelyGameScreen> {
 
   void _nextRound() {
     if (isLastRound) {
+      // Use pushReplacement so we don't go back to the game when backing out of results
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -152,9 +172,6 @@ class _MostLikelyGameScreenState extends State<MostLikelyGameScreen> {
     if (players.isEmpty || (questionPool.isEmpty && currentQuestion.isEmpty)) {
       return const Scaffold(body: Center(child: Text("Game data missing")));
     }
-
-    // REMOVED: final currentVoter = players[currentVoterIndex];
-    // This line caused the crash because it ran even when voting was finished.
 
     return Scaffold(
       backgroundColor: PartyColors.background,
@@ -197,15 +214,26 @@ class _MostLikelyGameScreenState extends State<MostLikelyGameScreen> {
             const SizedBox(height: 24),
 
             if (!revealPhase) ...[
-              // SAFE ACCESS HERE: because we are inside !revealPhase
-              Text(
-                "Voter: ${players[currentVoterIndex].name}",
-                style: const TextStyle(
-                  color: PartyColors.accentYellow,
-                  fontSize: 18,
+              if (widget.config.votingMode ==
+                  MostLikelyVotingMode.phonePass) ...[
+                Text(
+                  "Voter: ${players[currentVoterIndex].name}",
+                  style: const TextStyle(
+                    color: PartyColors.accentYellow,
+                    fontSize: 18,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ] else ...[
+                const Text(
+                  "GROUP VOTING",
+                  style: TextStyle(
+                    color: PartyColors.accentYellow,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               Expanded(
                 child: GridView.builder(

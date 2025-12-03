@@ -34,6 +34,35 @@ class _AssassinSetupScreenState extends State<AssassinSetupScreen> {
 
   final List<TextEditingController> _nameControllers = [];
 
+  void _showHowToPlay() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("How to Play", style: TextStyle(color: Colors.white)),
+        content: const SingleChildScrollView(
+          child: Text(
+            "🗡️ Assassins try to eliminate others secretly by winking.\n"
+            "🕵️ Detectives work to identify the assassins.\n"
+            "🎭 Each player gets a role.\n"
+            "⏱️ Optional timer for each round.\n"
+            "🏆 Game ends when assassins are caught or equal others.\n",
+            style: TextStyle(color: Colors.white70, height: 1.5),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text("Got it"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,20 +163,29 @@ class _AssassinSetupScreenState extends State<AssassinSetupScreen> {
               const SizedBox(height: 12),
 
               // HEADER
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  "ASSASSIN",
-                  style: TextStyle(
-                    fontSize: 24,
-                    letterSpacing: 4,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "WINK ASSASSIN",
+                      style: TextStyle(
+                        letterSpacing: 3,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _showHowToPlay,
+                      icon: const Icon(Icons.info_outline, color: Colors.white),
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
 
               Expanded(
                 child: SingleChildScrollView(
