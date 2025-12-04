@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-class ViralOrFlopResultsScreen extends StatelessWidget {
+class ViralResultsScreen extends StatelessWidget {
   final int finalStreak;
 
-  const ViralOrFlopResultsScreen({super.key, required this.finalStreak});
+  const ViralResultsScreen({super.key, required this.finalStreak});
 
   String get _rank {
     if (finalStreak >= 7) return "💀 LEGEND";

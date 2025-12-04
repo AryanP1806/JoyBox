@@ -7,7 +7,8 @@ import '../games/heads_up/heads_up_setup.dart';
 import '../games/truth_or_dare/truth_dare_setup_screen.dart';
 import '../games/assassin/assassin_setup_screen.dart';
 import '../games/most_likely/most_likely_setup_screen.dart';
-import '../games/viral/viral_or_flop_setup_screen.dart';
+import 'games/viral/viral_setup_screen.dart';
+import '../games/viral_or_flop/viral_or_flop_setup_screen.dart';
 // void main() {
 //   runApp(const PartyModeratorApp());
 // }
@@ -52,6 +53,7 @@ class PartyModeratorApp extends StatelessWidget {
         '/assassin': (_) => const AssassinSetupScreen(),
         '/mostLikely': (_) => const MostLikelySetupScreen(),
         '/ViralOrFlop': (_) => const ViralOrFlopSetupScreen(),
+        '/Viral': (_) => const ViralScreen(),
       },
     );
   }

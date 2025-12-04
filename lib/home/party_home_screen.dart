@@ -68,6 +68,95 @@ class _HomeView extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 24),
               children: [
+                // _GameCard(
+                //   title: "Most Likely To...",
+                //   description:
+                //       "Vote on who in the group is most likely to do something wild.",
+                //   gradientStart: const Color(0xFFFFA726),
+                //   gradientEnd: const Color(0xFFFF7043),
+                //   emoji: "🤔",
+                //   tag: "Party Fun",
+                //   onTap: () => Navigator.pushNamed(context, "/mostLikely"),
+                // ),
+                // _GameCard(
+                //   title: "Spy",
+                //   description:
+                //       "Everyone knows the location—except one. Can you spot the spy?",
+                //   gradientStart: const Color(0xFFFF6B3D),
+                //   gradientEnd: const Color(0xFFED4337),
+                //   emoji: "🕵️",
+                //   tag: "Social Deduction",
+                //   onTap: () => Navigator.pushNamed(context, "/spy"),
+                // ),
+                // _GameCard(
+                //   title: "Clash of Hits",
+                //   description:
+                //       "Guess which media item went viral based on its popularity score.",
+                //   gradientStart: const Color(0xFF11998e),
+                //   gradientEnd: const Color(0xFF38ef7d),
+                //   emoji: "📈",
+                //   tag: "Trend Game",
+                //   onTap: () => Navigator.pushNamed(context, "/Viral"),
+                // ),
+                // _GameCard(
+                //   title: "Viral Or Flop",
+                //   description:
+                //       "Guess if the media item went viral or flopped based on its popularity score.",
+                //   gradientStart: const Color(0xFF11998e),
+                //   gradientEnd: const Color(0xFF38ef7d),
+                //   emoji: "📉",
+                //   tag: "Trend Game",
+                //   onTap: () => Navigator.pushNamed(context, "/ViralOrFlop"),
+                // ),
+                // _GameCard(
+                //   title: "Mr White",
+                //   description:
+                //       "One player got no word. Talk smart and catch the liar.",
+                //   gradientStart: const Color(0xFF434343),
+                //   gradientEnd: const Color(0xFF000000),
+                //   emoji: "🤍",
+                //   tag: "Word Game",
+                //   onTap: () => Navigator.pushNamed(context, "/mrWhite"),
+                // ),
+                // _GameCard(
+                //   title: "Mafia Night",
+                //   description:
+                //       "Mafia, doctor, detective. Talk, lie and vote to survive.",
+                //   gradientStart: const Color(0xFF9B51E0),
+                //   gradientEnd: const Color(0xFF2D9CDB),
+                //   emoji: "🎭",
+                //   tag: "Party Classic",
+                //   onTap: () => Navigator.pushNamed(context, "/mafia"),
+                // ),
+                // _GameCard(
+                //   title: "Truth or Dare",
+                //   description:
+                //       "Spicy, funny or brutal. Pick a pack and let chaos begin.",
+                //   gradientStart: const Color(0xFFFF4ECD),
+                //   gradientEnd: const Color(0xFF2F80ED),
+                //   emoji: "🎲",
+                //   tag: "Icebreaker",
+                //   onTap: () => Navigator.pushNamed(context, "/truthDare"),
+                // ),
+                // _GameCard(
+                //   title: "Heads Up!",
+                //   description: "Hold the phone to your head and act it out.",
+                //   gradientStart: const Color(0xFF56CCF2),
+                //   gradientEnd: const Color(0xFF00B894),
+                //   emoji: "🤪",
+                //   tag: "Act It Out",
+                //   onTap: () => Navigator.pushNamed(context, "/headsUp"),
+                // ),
+                // _GameCard(
+                //   title: "Wink Assassin",
+                //   description:
+                //       "One killer. One detective. Only a single accusation to save everyone.",
+                //   gradientStart: const Color(0xFF41295A),
+                //   gradientEnd: const Color(0xFF2F0743),
+                //   emoji: "🗡️",
+                //   tag: "Bluff Game",
+                //   onTap: () => Navigator.pushNamed(context, "/assassin"),
+                // ),
                 _GameCard(
                   title: "Most Likely To...",
                   description:
@@ -78,24 +167,35 @@ class _HomeView extends StatelessWidget {
                   tag: "Party Fun",
                   onTap: () => Navigator.pushNamed(context, "/mostLikely"),
                 ),
+                // _GameCard(
+                //   title: "Spy",
+                //   description:
+                //       "Everyone knows the location—except one. Can you spot the spy?",
+                //   gradientStart: const Color(0xFFFF6B3D),
+                //   gradientEnd: const Color(0xFFED4337),
+                //   emoji: "🕵️",
+                //   tag: "Social Deduction",
+                //   onTap: () => Navigator.pushNamed(context, "/spy"),
+                // ),
                 _GameCard(
-                  title: "Spy",
+                  title: "Clash of Hits",
                   description:
-                      "Everyone knows the location—except one. Can you spot the spy?",
-                  gradientStart: const Color(0xFFFF6B3D),
-                  gradientEnd: const Color(0xFFED4337),
-                  emoji: "🕵️",
-                  tag: "Social Deduction",
-                  onTap: () => Navigator.pushNamed(context, "/spy"),
+                      "Guess which media item went viral based on its popularity score.",
+                  gradientStart: const Color(0xFF11998e), // Green/Teal (Kept)
+                  gradientEnd: const Color(0xFF38ef7d),
+                  emoji: "📈",
+                  tag: "Trend Game",
+                  onTap: () => Navigator.pushNamed(context, "/Viral"),
                 ),
                 _GameCard(
-                  title: "Never Have I Ever",
+                  title: "Viral Or Flop",
                   description:
-                      "Secrets, confessions, and drinks. Who has done it?",
-                  gradientStart: const Color(0xFF11998e),
-                  gradientEnd: const Color(0xFF38ef7d),
-                  emoji: "🍺",
-                  tag: "Drinking Game",
+                      "Guess if the media item went viral or flopped based on its popularity score.",
+                  // 🔥 CHANGED: Deep Indigo/Blue to distinguish from Clash of Hits
+                  gradientStart: const Color(0xFF4e54c8),
+                  gradientEnd: const Color(0xFF8f94fb),
+                  emoji: "📉",
+                  tag: "Trend Game",
                   onTap: () => Navigator.pushNamed(context, "/ViralOrFlop"),
                 ),
                 _GameCard(
