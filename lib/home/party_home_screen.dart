@@ -89,6 +89,16 @@ class _HomeView extends StatelessWidget {
                   onTap: () => Navigator.pushNamed(context, "/spy"),
                 ),
                 _GameCard(
+                  title: "Never Have I Ever",
+                  description:
+                      "Secrets, confessions, and drinks. Who has done it?",
+                  gradientStart: const Color(0xFF11998e),
+                  gradientEnd: const Color(0xFF38ef7d),
+                  emoji: "🍺",
+                  tag: "Drinking Game",
+                  onTap: () => Navigator.pushNamed(context, "/ViralOrFlop"),
+                ),
+                _GameCard(
                   title: "Mr White",
                   description:
                       "One player got no word. Talk smart and catch the liar.",
