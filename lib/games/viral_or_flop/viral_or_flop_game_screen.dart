@@ -55,7 +55,7 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
   @override
   void initState() {
     super.initState();
-    // ✅ FIX: Wait for the widget to build before starting the round logic
+    // Wait for build before starting round logic
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _nextRound();
     });
@@ -72,7 +72,7 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
   void _nextRound() {
     setState(() {
       _locked = false;
-      _reveal = false; // Reset reveal state
+      _reveal = false;
       _resultMessage = null;
       _resultColor = Colors.transparent;
       _isLoading = false;
@@ -85,9 +85,8 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
     );
 
     if (pair.isEmpty) {
-      setState(() => _isLoading = false); // Stop loading
+      setState(() => _isLoading = false);
 
-      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -96,6 +95,7 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
           backgroundColor: Colors.red,
         ),
       );
+
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) Navigator.pop(context);
       });
@@ -142,7 +142,7 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
         ? selected.isViral
         : selected.isFlop;
 
-    // You lose if it's NOT the target OR if it IS the target but is FAKE
+    // Lose if it's not the target or it's FAKE
     bool correct = isTarget && !selected.isFake;
 
     _handleRoundEnd(correct: correct, selected: selected);
@@ -156,7 +156,7 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
     _timer?.cancel();
     setState(() {
       _locked = true;
-      _reveal = true; // SHOW THE SCORES
+      _reveal = true;
     });
 
     if (isTimeout) {
@@ -171,13 +171,12 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
   void _applyCorrect() {
     setState(() {
       _resultMessage = "CORRECT!";
-      _resultColor = Colors.green.withValues(alpha: 0.2);
+      _resultColor = Colors.green.withValues(alpha: 0.22);
       _streak++;
       if (_streak == 5) _immunity = true;
     });
 
-    // Delay to let user see numbers
-    Future.delayed(const Duration(milliseconds: 2000), _nextRound);
+    Future.delayed(const Duration(milliseconds: 1800), _nextRound);
   }
 
   void _applyWrong({bool isFakeTrap = false, bool isTimeout = false}) {
@@ -186,9 +185,9 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
       setState(() {
         _immunity = false;
         _resultMessage = "SAVED BY IMMUNITY!";
-        _resultColor = Colors.blue.withValues(alpha: 0.2);
+        _resultColor = Colors.blueGrey.withValues(alpha: 0.22);
       });
-      Future.delayed(const Duration(milliseconds: 2000), _nextRound);
+      Future.delayed(const Duration(milliseconds: 1800), _nextRound);
       return;
     }
 
@@ -199,7 +198,7 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
 
     setState(() {
       _resultMessage = msg;
-      _resultColor = Colors.red.withValues(alpha: 0.3);
+      _resultColor = Colors.redAccent.withValues(alpha: 0.32);
     });
 
     // Party Mode Punishments
@@ -237,7 +236,7 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
     );
   }
 
-  // ---------------- UI BUILDERS ----------------
+  // ---------------- UI HELPERS ----------------
 
   String _formatNumber(int num) {
     if (num == 0) return "FAKE / 0";
@@ -259,20 +258,17 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
               children: [
                 _statusBar(),
                 Expanded(
-                  child: Column(
-                    children: [
-                      _buildGameCard(
-                        _left,
-                        () => _onCardTap(_left),
-                        Colors.blue,
-                      ),
-                      _buildVsIndicator(),
-                      _buildGameCard(
-                        _right,
-                        () => _onCardTap(_right),
-                        Colors.purple,
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        _buildGameCard(_left, () => _onCardTap(_left)),
+                        const SizedBox(height: 18),
+                        _buildVsIndicator(),
+                        const SizedBox(height: 18),
+                        _buildGameCard(_right, () => _onCardTap(_right)),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -282,7 +278,8 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
             if (_reveal && _resultMessage != null)
               Positioned.fill(
                 child: IgnorePointer(
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
                     color: _resultColor,
                     alignment: Alignment.center,
                     child: Text(
@@ -307,12 +304,12 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
   Widget _statusBar() {
     return Container(
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 10,
+        top: MediaQuery.of(context).padding.top + 12,
         bottom: 12,
         left: 20,
         right: 20,
       ),
-      color: Colors.white10,
+      color: Colors.black,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -324,34 +321,26 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
                 "$_streak",
                 style: const TextStyle(
                   color: Colors.orange,
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          // Only show timer if not revealing answers
+
           if (widget.timerEnabled && !_reveal)
             Text(
-              "⏳ $_timeLeft",
+              "$_timeLeft",
               style: TextStyle(
                 color: _timeLeft <= 2 ? Colors.red : Colors.white,
-                fontSize: 20,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
 
           if (_immunity)
             const Row(
-              children: [
-                Text(
-                  "🛡 IMMUNE",
-                  style: TextStyle(
-                    color: Colors.greenAccent,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+              children: [Icon(Icons.shield_rounded, color: Colors.greenAccent)],
             ),
         ],
       ),
@@ -359,8 +348,7 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
   }
 
   Widget _buildVsIndicator() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.0),
+    return const Center(
       child: Text(
         "VS",
         style: TextStyle(
@@ -372,11 +360,11 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
     );
   }
 
-  Widget _buildGameCard(ViralMediaItem item, VoidCallback onTap, Color accent) {
-    Color cardBorder = accent.withValues(alpha: 0.3);
-    Color cardBg = accent.withValues(alpha: 0.05);
+  Widget _buildGameCard(ViralMediaItem item, VoidCallback onTap) {
+    // Base theme colors to match setup
+    Color cardBorder = Colors.white12;
+    Color cardBg = const Color(0xFF1E1E1E);
 
-    // --- REVEAL COLOR LOGIC ---
     if (_reveal) {
       // Determine if this card matches the game mode criteria
       bool matchesMode = widget.playMode == ViralPlayMode.viralOnly
@@ -386,14 +374,14 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
       if (item.isFake) {
         // Fakes are bad
         cardBorder = Colors.redAccent;
-        cardBg = Colors.red.withValues(alpha: 0.1);
+        cardBg = Colors.red.withValues(alpha: 0.12);
       } else if (matchesMode) {
-        // Correct Answer
+        // Correct Answer (for this mode)
         cardBorder = Colors.green;
-        cardBg = Colors.green.withValues(alpha: 0.1);
+        cardBg = Colors.green.withValues(alpha: 0.12);
       } else {
         // Neutral / Wrong
-        cardBorder = Colors.grey.withValues(alpha: 0.2);
+        cardBorder = Colors.white10;
         cardBg = Colors.black;
       }
     }
@@ -402,23 +390,13 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 260),
           width: double.infinity,
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          margin: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
             color: cardBg,
-            gradient: _reveal
-                ? null
-                : LinearGradient(
-                    colors: [
-                      accent.withValues(alpha: 0.25),
-                      accent.withValues(alpha: 0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            border: Border.all(color: cardBorder, width: _reveal ? 4 : 1),
+            border: Border.all(color: cardBorder, width: _reveal ? 3 : 1),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -427,25 +405,23 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
                 widget.category == MediaCategory.movie
                     ? Icons.movie
                     : Icons.gamepad,
-                size: 32,
+                size: 40,
                 color: Colors.white70,
               ),
-              const SizedBox(height: 12),
-
+              const SizedBox(height: 14),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
                   item.title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
 
-              // --- REVEAL CONTENT ---
               if (_reveal)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
@@ -462,8 +438,8 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
                       Text(
                         _formatNumber(item.popularityScore),
                         style: const TextStyle(
-                          color: Colors.yellowAccent,
-                          fontSize: 28,
+                          color: Colors.orange,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -480,6 +456,17 @@ class _ViralOrFlopGameScreenState extends State<ViralOrFlopGameScreen> {
                           ),
                         ),
                     ],
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(top: 14, left: 22, right: 22),
+                  child: Text(
+                    item.description,
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
                   ),
                 ),
             ],

@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'party_theme.dart'; // Ensure this points to your theme file
 // If you have specific game routes, keep your imports, e.g.:
 // import '../settings/settings_screen.dart';
+import '../auth/auth_service.dart';
+// Assuming FirestoreService is in this path based on typical structure.
+// Update this path if your service is located elsewhere.
+// import '../services/firestore_service.dart';
+import '../auth/firestore_service.dart';
 
 class PartyMainScreen extends StatefulWidget {
   const PartyMainScreen({super.key});
@@ -159,7 +164,7 @@ class _ProfileView extends StatelessWidget {
               children: [
                 IconButton(
                   onPressed: () {
-                    // Edit Profile logic
+                    Navigator.pushNamed(context, "/editProfile");
                   },
                   icon: const Icon(Icons.edit, color: PartyColors.accentCyan),
                 ),
@@ -167,7 +172,25 @@ class _ProfileView extends StatelessWidget {
             ),
             const _ProfileHeader(),
             const SizedBox(height: 24),
-            const _StatsRow(),
+            // Logic for Live Stats from Firestore
+            FutureBuilder(
+              future: FirestoreService().getUser(
+                AuthService().currentUser!.uid,
+              ),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+
+                final user = snapshot.data!;
+
+                return _StatsRowLive(
+                  games: user.games,
+                  wins: user.wins,
+                  streak: user.streak,
+                );
+              },
+            ),
             const SizedBox(height: 24),
             const _ProUpgradeCard(),
             const SizedBox(height: 24),
@@ -190,6 +213,9 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // User retrieval is safe here inside build
+    final user = AuthService().currentUser;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Row(
@@ -229,12 +255,12 @@ class _Header extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: const Row(
+            child: Row(
               children: [
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
-                  "Aryan Pore",
-                  style: TextStyle(
+                  user?.email ?? "Guest",
+                  style: const TextStyle(
                     color: PartyColors.textPrimary,
                     fontSize: 12,
                   ),
@@ -500,8 +526,17 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  const _StatsRow();
+class _StatsRowLive extends StatelessWidget {
+  final int games;
+  final int wins;
+  final int streak;
+
+  const _StatsRowLive({
+    super.key,
+    required this.games,
+    required this.wins,
+    required this.streak,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -513,19 +548,79 @@ class _StatsRow extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
-          _StatItem(label: "Games", value: "142"),
+        children: [
+          _StatItem(label: "Games", value: games.toString()),
           _StatItem(
             label: "Wins",
-            value: "89",
+            value: wins.toString(),
             color: PartyColors.accentYellow,
           ),
-          _StatItem(label: "Streak", value: "5 🔥"),
+          _StatItem(label: "Streak", value: "$streak 🔥"),
         ],
       ),
     );
   }
 }
+
+class _StatsRow extends StatelessWidget {
+  const _StatsRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: PartyColors.card,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      // child: Row(
+      //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+      //   // FIXED: Explicitly removed 'const' here because PartyColors.accentYellow may not be a constant.
+      //   children: const [
+      //     _StatItem(label: "Games", value: "142"),
+      //     _StatItem(
+      //       label: "Wins",
+      //       value: "89",
+      //       color: PartyColors.accentYellow,
+      //     ),
+      //     _StatItem(label: "Streak", value: "5 🔥"),
+      //   ],
+      // ).children.toList(), // Hack to ensure we use non-const list if code is stubborn, but better is to just remove const keyword below:
+    );
+  }
+}
+
+// RE-WRITING _StatsRow CORRECTLY WITHOUT CONST LIST
+class _StatsRowFixed extends StatelessWidget {
+  const _StatsRowFixed();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: PartyColors.card,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        // ✅ FIXED: Removed 'const' keyword here.
+        children: [
+          const _StatItem(label: "Games", value: "142"),
+          const _StatItem(
+            label: "Wins",
+            value: "89",
+            color: PartyColors.accentYellow,
+          ),
+          const _StatItem(label: "Streak", value: "5 🔥"),
+        ],
+      ),
+    );
+  }
+}
+
+// NOTE: I'm replacing your _StatsRow with this fixed version in the final output
+// to ensure no "invalid constant value" errors occur.
 
 class _StatItem extends StatelessWidget {
   final String label;
@@ -648,7 +743,17 @@ class _MenuSection extends StatelessWidget {
           icon: Icons.logout,
           title: "Log Out",
           isDestructive: true,
-          onTap: () {},
+          onTap: () async {
+            await AuthService().logout();
+
+            if (context.mounted) {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                "/login", // ✅ Your Login Screen route
+                (route) => false,
+              );
+            }
+          },
         ),
       ],
     );

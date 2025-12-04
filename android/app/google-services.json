@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "890577158650",
+    "project_id": "joybox-fa5b5",
+    "storage_bucket": "joybox-fa5b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:890577158650:android:826994490cbda389b8a443",
+        "android_client_info": {
+          "package_name": "com.example.joybox"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5zAF6VZnF_PlUFctTBvxFEkmV-7WJCUA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
