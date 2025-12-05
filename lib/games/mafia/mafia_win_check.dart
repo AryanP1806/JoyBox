@@ -10,7 +10,7 @@ import '../../auth/auth_service.dart'; // <--- ADDED
 import 'mafia_settings_cache.dart';
 import 'mafia_models.dart';
 import 'mafia_kill_screen.dart';
-import 'mafia_setup.dart';
+// import 'mafia_setup.dart';
 
 class MafiaWinCheckScreen extends StatefulWidget {
   final List<MafiaPlayer> players;

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <--- ADDED
 
 import 'mafia_models.dart';
 import 'mafia_role_reveal.dart';
-import 'mafia_settings_cache.dart';
+// import 'mafia_settings_cache.dart'; // <--- REMOVED
 
 class MafiaSetupScreen extends StatefulWidget {
   const MafiaSetupScreen({super.key});
@@ -23,28 +24,31 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
   bool timerEnabled = false;
   int timerSeconds = 60;
 
+  bool _isLoading = true; // <--- To prevent UI jumping
+
   @override
   void initState() {
     super.initState();
-    _restoreFromCache();
+    _loadSettings(); // ✅ Load settings on start
   }
 
-  void _restoreFromCache() {
-    // Restore primitive settings
-    playerCount = MafiaSettingsCache.playerCount ?? playerCount;
-    mafiaCount = MafiaSettingsCache.mafiaCount ?? mafiaCount;
-    hasDoctor = MafiaSettingsCache.hasDoctor ?? hasDoctor;
-    hasDetective = MafiaSettingsCache.hasDetective ?? hasDetective;
-    secretVoting = MafiaSettingsCache.secretVoting ?? secretVoting;
-    timerEnabled = MafiaSettingsCache.timerEnabled ?? timerEnabled;
-    timerSeconds = MafiaSettingsCache.timerSeconds ?? timerSeconds;
+  // ✅ NEW: Load cached settings
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      playerCount = prefs.getInt('mafia_playerCount') ?? 6;
+      mafiaCount = prefs.getInt('mafia_mafiaCount') ?? 1;
+      hasDoctor = prefs.getBool('mafia_hasDoctor') ?? true;
+      hasDetective = prefs.getBool('mafia_hasDetective') ?? true;
+      secretVoting = prefs.getBool('mafia_secretVoting') ?? false;
+      timerEnabled = prefs.getBool('mafia_timerEnabled') ?? false;
+      timerSeconds = prefs.getInt('mafia_timerSeconds') ?? 60;
 
-    // Build controllers with correct length
-    _syncControllers();
+      // Build controllers with correct length
+      _syncControllers();
 
-    // Restore names if present
-    final cachedNames = MafiaSettingsCache.playerNames;
-    if (cachedNames != null) {
+      // Restore names if present
+      final cachedNames = prefs.getStringList('mafia_playerNames') ?? [];
       for (
         int i = 0;
         i < nameControllers.length && i < cachedNames.length;
@@ -52,7 +56,25 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
       ) {
         nameControllers[i].text = cachedNames[i];
       }
-    }
+
+      _isLoading = false;
+    });
+  }
+
+  // ✅ NEW: Save settings before playing
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('mafia_playerCount', playerCount);
+    await prefs.setInt('mafia_mafiaCount', mafiaCount);
+    await prefs.setBool('mafia_hasDoctor', hasDoctor);
+    await prefs.setBool('mafia_hasDetective', hasDetective);
+    await prefs.setBool('mafia_secretVoting', secretVoting);
+    await prefs.setBool('mafia_timerEnabled', timerEnabled);
+    await prefs.setInt('mafia_timerSeconds', timerSeconds);
+
+    // Save Names
+    final names = nameControllers.map((c) => c.text).toList();
+    await prefs.setStringList('mafia_playerNames', names);
   }
 
   void _syncControllers() {
@@ -78,7 +100,7 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
     });
   }
 
-  void _startGame() {
+  Future<void> _startGame() async {
     if (mafiaCount >= playerCount) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Mafia must be LESS than total players")),
@@ -86,19 +108,10 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
       return;
     }
 
-    final names = _buildFinalPlayerNames();
+    // ✅ SAVE SETTINGS TO CACHE
+    await _saveSettings();
 
-    // ✅ SAVE SETTINGS TO CACHE so that after game, setup is prefilled
-    MafiaSettingsCache.save(
-      playerCount: playerCount,
-      mafiaCount: mafiaCount,
-      hasDoctor: hasDoctor,
-      hasDetective: hasDetective,
-      secretVoting: secretVoting,
-      timerEnabled: timerEnabled,
-      timerSeconds: timerSeconds,
-      playerNames: names,
-    );
+    final names = _buildFinalPlayerNames();
 
     final config = MafiaGameConfig(
       players: names,
@@ -110,10 +123,14 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
       timerSeconds: timerSeconds,
     );
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => MafiaRoleRevealScreen(config: config)),
-    );
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MafiaRoleRevealScreen(config: config),
+        ),
+      );
+    }
   }
 
   // ✅ HOW TO PLAY POPUP
@@ -162,6 +179,13 @@ class _MafiaSetupScreenState extends State<MafiaSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF020024),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(

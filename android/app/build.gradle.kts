@@ -11,7 +11,9 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true  // << REQUIRED
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -19,7 +21,6 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
-
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.joybox"
@@ -42,12 +43,8 @@ android {
 
 
 dependencies {
-    // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
-
-    // When using the BoM, you don't specify versions in Firebase library dependencies
-    // Add other Firebase products here as needed (e.g., Analytics, Auth)
-    // implementation("com.google.firebase:firebase-analytics")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
 
 flutter {

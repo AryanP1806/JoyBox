@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'viral_models.dart';
 
 import 'viral_game_screen.dart';
@@ -20,8 +21,83 @@ class _ViralScreenState extends State<ViralScreen> {
   bool timerEnabled = true;
   int timerSeconds = 5; // Defaulted to 5 for sanity
 
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      final catIndex = prefs.getInt('viral_category') ?? 0;
+      if (catIndex < MediaCategory.values.length) {
+        selectedCategory = MediaCategory.values[catIndex];
+      }
+
+      fakeEnabled = prefs.getBool('viral_fakeEnabled') ?? true;
+      partyMode = prefs.getBool('viral_partyMode') ?? true;
+      timerEnabled = prefs.getBool('viral_timerEnabled') ?? true;
+      timerSeconds = prefs.getInt('viral_timerSeconds') ?? 5;
+
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('viral_category', selectedCategory.index);
+    await prefs.setBool('viral_fakeEnabled', fakeEnabled);
+    await prefs.setBool('viral_partyMode', partyMode);
+    await prefs.setBool('viral_timerEnabled', timerEnabled);
+    await prefs.setInt('viral_timerSeconds', timerSeconds);
+  }
+
+  // ✅ HOW TO PLAY DIALOG
+  void _showHowToPlay() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "How to Play",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: const SingleChildScrollView(
+          child: Text(
+            "Guess which titles went more viral than other!\n\n"
+            "🎬 CATEGORIES\n"
+            "• Choose between Movies or Games.\n\n"
+            "🤖 FAKE ROUNDS\n"
+            "• AI generates fake titles mixed with real ones.\n"
+            "• Can you spot the real viral hit?\n\n"
+            "⚡ PANIC TIMER\n"
+            "• Decide quickly before time runs out!\n\n",
+            style: TextStyle(color: Colors.white70, height: 1.5),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Got it", style: TextStyle(color: Colors.orange)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.orange)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -31,6 +107,13 @@ class _ViralScreenState extends State<ViralScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         leading: const BackButton(color: Colors.white),
+        actions: [
+          // ✅ ADDED INFO BUTTON
+          IconButton(
+            onPressed: _showHowToPlay,
+            icon: const Icon(Icons.info_outline, color: Colors.white),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -144,19 +227,23 @@ class _ViralScreenState extends State<ViralScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ViralGameScreen(
-                        category: selectedCategory,
-                        fakeEnabled: fakeEnabled,
-                        partyMode: partyMode,
-                        timerEnabled: timerEnabled,
-                        timerSeconds: timerSeconds,
+                onPressed: () async {
+                  await _saveSettings();
+
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ViralGameScreen(
+                          category: selectedCategory,
+                          fakeEnabled: fakeEnabled,
+                          partyMode: partyMode,
+                          timerEnabled: timerEnabled,
+                          timerSeconds: timerSeconds,
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 },
                 child: const Text(
                   "START GAME",

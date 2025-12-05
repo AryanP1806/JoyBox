@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <--- ADDED
 
-import '../../settings/app_settings.dart'; // ✅ ADDED
+import '../../settings/app_settings.dart';
 import 'truth_dare_models.dart';
 import 'truth_dare_game_screen.dart';
 import 'truth_dare_custom_words_screen.dart';
-import 'truth_dare_settings_cache.dart';
+// import 'truth_dare_settings_cache.dart'; // <--- REMOVED
 
 class TruthDareSetupScreen extends StatefulWidget {
   const TruthDareSetupScreen({super.key});
@@ -31,6 +32,86 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
   bool limitSkips = false;
   int maxSkipsPerPlayer = 2;
 
+  bool _isLoading = true; // <--- To prevent UI jumping
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings(); // ✅ Load settings on start
+  }
+
+  // ✅ NEW: Load cached settings
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      playerCount = prefs.getInt('td_playerCount') ?? 2;
+
+      // Load Enums by Index with boundary checks
+      final catIndex = prefs.getInt('td_category') ?? 0;
+      if (catIndex < TruthDareCategory.values.length) {
+        category = TruthDareCategory.values[catIndex];
+      }
+
+      // Gate Adult content if disabled globally
+      if (category == TruthDareCategory.adult &&
+          !AppSettings.instance.adultEnabled) {
+        category = TruthDareCategory.friends;
+      }
+
+      final turnIndex = prefs.getInt('td_turnMode') ?? 0;
+      if (turnIndex < TurnSelectionMode.values.length) {
+        turnMode = TurnSelectionMode.values[turnIndex];
+      }
+
+      final scoreIndex = prefs.getInt('td_scoringMode') ?? 0;
+      if (scoreIndex < ScoringMode.values.length) {
+        scoringMode = ScoringMode.values[scoreIndex];
+      }
+
+      final skipIndex = prefs.getInt('td_skipBehavior') ?? 0;
+      if (skipIndex < SkipBehavior.values.length) {
+        skipBehavior = SkipBehavior.values[skipIndex];
+      }
+
+      allowSwitch = prefs.getBool('td_allowSwitch') ?? true;
+      limitSkips = prefs.getBool('td_limitSkips') ?? false;
+      maxSkipsPerPlayer = prefs.getInt('td_maxSkips') ?? 2;
+
+      // Restore Names
+      final cachedNames = prefs.getStringList('td_playerNames') ?? [];
+      for (
+        int i = 0;
+        i < _nameControllers.length && i < cachedNames.length;
+        i++
+      ) {
+        _nameControllers[i].text = cachedNames[i];
+      }
+
+      _isLoading = false;
+    });
+  }
+
+  // ✅ NEW: Save settings before playing
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setInt('td_playerCount', playerCount);
+    await prefs.setInt('td_category', category.index);
+    await prefs.setInt('td_turnMode', turnMode.index);
+    await prefs.setInt('td_scoringMode', scoringMode.index);
+    await prefs.setInt('td_skipBehavior', skipBehavior.index);
+    await prefs.setBool('td_allowSwitch', allowSwitch);
+    await prefs.setBool('td_limitSkips', limitSkips);
+    await prefs.setInt('td_maxSkips', maxSkipsPerPlayer);
+
+    // Save Names (only the ones currently used)
+    final namesToSave = _nameControllers
+        .take(playerCount)
+        .map((c) => c.text.trim())
+        .toList();
+    await prefs.setStringList('td_playerNames', namesToSave);
+  }
+
   void _showHowToPlay() {
     showDialog(
       context: context,
@@ -43,7 +124,6 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
             "🤔 Choose Truth or Dare\n"
             "👥 Players take turns\n"
             "✅ Answer truthfully or complete the dare\n"
-            // "🔄 Switch after each question\n"
             "🔄 Switch players if allowed\n"
             "⏳ Game ends when all questions are answered\n"
             "🏆 Score points for each completed task\n"
@@ -65,46 +145,6 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _restoreFromCache();
-  }
-
-  void _restoreFromCache() {
-    playerCount = TruthDareSettingsCache.playerCount ?? playerCount;
-
-    if (TruthDareSettingsCache.categoryIndex != null) {
-      final cachedCategory =
-          TruthDareCategory.values[TruthDareSettingsCache.categoryIndex!];
-
-      // ✅ BLOCK ADULT IF DISABLED
-      if (cachedCategory != TruthDareCategory.adult ||
-          AppSettings.instance.adultEnabled) {
-        category = cachedCategory;
-      }
-
-      turnMode =
-          TurnSelectionMode.values[TruthDareSettingsCache.turnModeIndex!];
-      scoringMode =
-          ScoringMode.values[TruthDareSettingsCache.scoringModeIndex!];
-      skipBehavior =
-          SkipBehavior.values[TruthDareSettingsCache.skipBehaviorIndex!];
-    }
-
-    allowSwitch = TruthDareSettingsCache.allowSwitch ?? allowSwitch;
-    limitSkips = TruthDareSettingsCache.limitSkips ?? limitSkips;
-    maxSkipsPerPlayer =
-        TruthDareSettingsCache.maxSkipsPerPlayer ?? maxSkipsPerPlayer;
-
-    final cachedNames = TruthDareSettingsCache.playerNames;
-    if (cachedNames != null) {
-      for (int i = 0; i < cachedNames.length; i++) {
-        _nameControllers[i].text = cachedNames[i];
-      }
-    }
-  }
-
-  @override
   void dispose() {
     for (final c in _nameControllers) {
       c.dispose();
@@ -112,23 +152,14 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
     super.dispose();
   }
 
-  void _startGame() {
+  Future<void> _startGame() async {
     final names = List.generate(playerCount, (i) {
       final txt = _nameControllers[i].text.trim();
       return txt.isEmpty ? 'Player ${i + 1}' : txt;
     });
 
-    TruthDareSettingsCache.save(
-      playerCount: playerCount,
-      playerNames: names,
-      categoryIndex: category.index,
-      turnModeIndex: turnMode.index,
-      scoringModeIndex: scoringMode.index,
-      skipBehaviorIndex: skipBehavior.index,
-      allowSwitch: allowSwitch,
-      limitSkips: limitSkips,
-      maxSkipsPerPlayer: maxSkipsPerPlayer,
-    );
+    // ✅ Save Settings to Cache
+    await _saveSettings();
 
     final config = TruthDareGameConfig(
       playerCount: playerCount,
@@ -142,14 +173,23 @@ class _TruthDareSetupScreenState extends State<TruthDareSetupScreen> {
       maxSkipsPerPlayer: maxSkipsPerPlayer,
     );
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => TruthDareGameScreen(config: config)),
-    );
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => TruthDareGameScreen(config: config)),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF23074D),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     // ✅ FILTER CATEGORY LIST BY ADULT MODE
     final allowedCategories = TruthDareCategory.values.where((c) {
       if (c == TruthDareCategory.adult) {

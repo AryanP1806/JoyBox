@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'viral_or_flop_models.dart';
 import 'viral_or_flop_game_screen.dart';
 
@@ -18,13 +19,103 @@ class _ViralOrFlopSetupScreenState extends State<ViralOrFlopSetupScreen> {
   bool timerEnabled = true;
   int timerSeconds = 5;
 
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      final catIndex = prefs.getInt('vof_category') ?? 0;
+      if (catIndex < MediaCategory.values.length) {
+        selectedCategory = MediaCategory.values[catIndex];
+      }
+
+      final modeIndex = prefs.getInt('vof_playMode') ?? 0;
+      if (modeIndex < ViralPlayMode.values.length) {
+        playMode = ViralPlayMode.values[modeIndex];
+      }
+
+      fakeEnabled = prefs.getBool('vof_fakeEnabled') ?? true;
+      partyMode = prefs.getBool('vof_partyMode') ?? true;
+      timerEnabled = prefs.getBool('vof_timerEnabled') ?? true;
+      timerSeconds = prefs.getInt('vof_timerSeconds') ?? 5;
+
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('vof_category', selectedCategory.index);
+    await prefs.setInt('vof_playMode', playMode.index);
+    await prefs.setBool('vof_fakeEnabled', fakeEnabled);
+    await prefs.setBool('vof_partyMode', partyMode);
+    await prefs.setBool('vof_timerEnabled', timerEnabled);
+    await prefs.setInt('vof_timerSeconds', timerSeconds);
+  }
+
+  // ✅ HOW TO PLAY DIALOG
+  void _showHowToPlay() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "How to Play",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: const SingleChildScrollView(
+          child: Text(
+            "📈 VIRAL MODE\n"
+            "• Guess which movie/game was more popular.\n"
+            "• Higher score/box office wins.\n\n"
+            "📉 FLOP MODE\n"
+            "• Guess which one failed harder.\n"
+            "• Lower score wins.\n\n"
+            "⚡ PANIC TIMER\n"
+            "• You only have a few seconds to decide!\n\n"
+            "😈 PARTY MODE\n"
+            "• Losers might have to do a dare!",
+            style: TextStyle(color: Colors.white70, height: 1.5),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Got it", style: TextStyle(color: Colors.orange)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.orange)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text("VIRAL OR FLOP SETUP"),
+        title: const Text("VIRAL OR FLOP"),
+        actions: [
+          // ✅ ADDED INFO BUTTON
+          IconButton(
+            onPressed: _showHowToPlay,
+            icon: const Icon(Icons.info_outline, color: Colors.white),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -169,20 +260,24 @@ class _ViralOrFlopSetupScreenState extends State<ViralOrFlopSetupScreen> {
     );
   }
 
-  void _startGame() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ViralOrFlopGameScreen(
-          category: selectedCategory,
-          fakeEnabled: fakeEnabled,
-          partyMode: partyMode,
-          timerEnabled: timerEnabled,
-          timerSeconds: timerSeconds,
-          playMode: playMode, // ✅ FIXED
+  Future<void> _startGame() async {
+    await _saveSettings();
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ViralOrFlopGameScreen(
+            category: selectedCategory,
+            fakeEnabled: fakeEnabled,
+            partyMode: partyMode,
+            timerEnabled: timerEnabled,
+            timerSeconds: timerSeconds,
+            playMode: playMode,
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   Widget _panel(String title, Widget child) {
@@ -275,7 +370,7 @@ class _ViralOrFlopSetupScreenState extends State<ViralOrFlopSetupScreen> {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeThumbColor: Colors.orange, // ✅ FIX
+          activeThumbColor: Colors.orange,
         ),
       ],
     );

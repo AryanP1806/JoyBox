@@ -3,6 +3,7 @@ import 'dart:math';
 enum HeadsUpPack {
   general,
   movies,
+  desimovies,
   videoGames,
   anime,
   animals,
@@ -20,6 +21,8 @@ extension HeadsUpPackX on HeadsUpPack {
         return "General";
       case HeadsUpPack.movies:
         return "Movies";
+      case HeadsUpPack.desimovies:
+        return "Desi Movies";
       case HeadsUpPack.videoGames:
         return "Video Games";
       case HeadsUpPack.anime:
@@ -81,7 +84,22 @@ extension HeadsUpPackX on HeadsUpPack {
           "Deadpool",
           "Iron Man",
           "Avatar",
+        ];
+      case HeadsUpPack.desimovies:
+        return [
+          "3 Idiots",
+          "Dangal",
+          "Kabir Singh",
+          "Bahubali",
+          "PK",
+          "Sultan",
+          "Chennai Express",
+          "Lagaan",
+          "Zindagi Na Milegi Dobara",
+          "Andaz Apna Apna",
           "Sholay",
+          "Dilwale Dulhania Le Jayenge",
+          "M.S. Dhoni",
           "RRR",
           "KGF",
           "Pushpa",
@@ -90,7 +108,6 @@ extension HeadsUpPackX on HeadsUpPack {
           "Pathaan",
           "Animal",
         ];
-
       // ✅ VIDEO GAMES
       case HeadsUpPack.videoGames:
         return [

@@ -28,11 +28,10 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
-  // ✅ NEW: The Safety Check Logic
+  // Safety Check Logic
   Future<void> _handleLogout() async {
     bool hasInternet = false;
     try {
-      // Simple ping check to see if we have real data connection
       final result = await InternetAddress.lookup('google.com');
       hasInternet = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
     } catch (_) {
@@ -40,10 +39,8 @@ class _ProfileTabState extends State<ProfileTab> {
     }
 
     if (hasInternet) {
-      // We are Online: Safe to logout
       await _performLogout();
     } else {
-      // We are Offline: SHOW WARNING!
       if (!mounted) return;
       showDialog(
         context: context,
@@ -54,14 +51,12 @@ class _ProfileTabState extends State<ProfileTab> {
             style: TextStyle(color: Colors.redAccent),
           ),
           content: const Text(
-            "You are currently OFFLINE.\n\n"
-            "If you log out now, any games played while offline will be PERMANENTLY LOST.\n\n"
-            "Connect to the internet to sync your stats before logging out.",
+            "You are currently OFFLINE.\n\nIf you log out now, any games played while offline will be PERMANENTLY LOST.\n\nConnect to the internet to sync your stats before logging out.",
             style: TextStyle(color: Colors.white),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context), // Stay logged in
+              onPressed: () => Navigator.pop(context),
               child: const Text(
                 "Cancel",
                 style: TextStyle(color: Colors.white54),
@@ -69,8 +64,8 @@ class _ProfileTabState extends State<ProfileTab> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.pop(context); // Close dialog
-                await _performLogout(); // Force Logout
+                Navigator.pop(context);
+                await _performLogout();
               },
               child: const Text(
                 "Log Out Anyway",
@@ -83,7 +78,6 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
-  // Actual Logout Action
   Future<void> _performLogout() async {
     await AuthService().logout();
     if (mounted) {
@@ -91,11 +85,8 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
-  // ... (Keep _editName method as is) ...
   Future<void> _editName(BuildContext context, String currentName) async {
-    // ... your existing edit code ...
     final controller = TextEditingController(text: currentName);
-
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -126,14 +117,17 @@ class _ProfileTabState extends State<ProfileTab> {
           TextButton(
             onPressed: () async {
               if (controller.text.trim().isNotEmpty && currentUser != null) {
+                // Update username AND searchKey for searching
                 await FirebaseFirestore.instance
                     .collection('users')
                     .doc(currentUser!.uid)
-                    .update({'username': controller.text.trim()});
-
+                    .update({
+                      'username': controller.text.trim(),
+                      'searchKey': controller.text.trim().toLowerCase(),
+                    });
                 if (context.mounted) {
                   Navigator.pop(context);
-                  setState(() {}); // Refresh the UI
+                  setState(() {});
                 }
               }
             },
@@ -147,6 +141,19 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
+  // ✅ UPDATED: Friends Manager Popup
+  void _showFriendsManager() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: PartyColors.background,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => const _FriendsBottomSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (currentUser == null) {
@@ -156,11 +163,11 @@ class _ProfileTabState extends State<ProfileTab> {
     return FutureBuilder<Map<String, dynamic>?>(
       future: _fetchUserData(),
       builder: (context, snapshot) {
-        // ... (Keep your existing variable setup) ...
         String username = "Party Animal";
         String email = currentUser?.email ?? "No Email";
         String initials = "P";
         int games = 0;
+        int wins = 0;
         int friendsCount = 0;
         int loginDays = 1;
         bool isPro = false;
@@ -175,6 +182,7 @@ class _ProfileTabState extends State<ProfileTab> {
           final data = snapshot.data!;
           username = data['username'] ?? "User";
           games = data['gamesPlayed'] ?? 0;
+          wins = data['wins'] ?? 0;
           friendsCount = data['friendsCount'] ?? 0;
           loginDays = data['loginDays'] ?? 1;
           isPro = data['isPro'] ?? false;
@@ -206,17 +214,73 @@ class _ProfileTabState extends State<ProfileTab> {
                   initials: initials,
                 ),
                 const SizedBox(height: 24),
-                _StatsRow(games: games, friends: friendsCount, days: loginDays),
+
+                _StatsRow(games: games, wins: wins, streak: loginDays),
+
+                const SizedBox(height: 24),
+
+                // ✅ FRIEND COUNT DISPLAY
+                GestureDetector(
+                  onTap: _showFriendsManager,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 20,
+                    ),
+                    decoration: BoxDecoration(
+                      color: PartyColors.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.people,
+                              color: PartyColors.accentCyan,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              "$friendsCount Friends",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            // Show request badge if needed (can implement listener later)
+                            const Text(
+                              "Manage",
+                              style: TextStyle(color: Colors.white54),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: Colors.white54,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 24),
                 if (!isPro) ...[
                   const _ProUpgradeCard(),
                   const SizedBox(height: 24),
                 ],
 
-                // ✅ UPDATED: Pass the new _handleLogout to the menu
                 _MenuSection(
                   isGuest: false,
-                  onLogout: _handleLogout, // <--- Calls our new Safety Check
+                  onManageFriends: _showFriendsManager,
+                  onLogout: _handleLogout,
                 ),
                 const SizedBox(height: 40),
               ],
@@ -228,7 +292,6 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   Widget _buildGuestLayout() {
-    // ... (Same as previous code) ...
     return SafeArea(
       child: Center(
         child: Column(
@@ -278,8 +341,338 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 }
+
 // -----------------------------------------------------------------------------
-// HELPER WIDGETS (Must be outside the main class to be visible)
+// ✅ NEW: TABBED FRIENDS BOTTOM SHEET
+// -----------------------------------------------------------------------------
+class _FriendsBottomSheet extends StatelessWidget {
+  const _FriendsBottomSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    // 80% Height
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.80,
+      child: DefaultTabController(
+        length: 3,
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const TabBar(
+              indicatorColor: PartyColors.accentPink,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white38,
+              tabs: [
+                Tab(text: "Friends"),
+                Tab(text: "Requests"),
+                Tab(text: "Search"),
+              ],
+            ),
+            const Expanded(
+              child: TabBarView(
+                children: [
+                  _FriendsListTab(),
+                  _RequestsListTab(),
+                  _SearchUsersTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 1. FRIENDS LIST TAB
+class _FriendsListTab extends StatelessWidget {
+  const _FriendsListTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: AuthService().getFriendsStream(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData)
+          return const Center(
+            child: CircularProgressIndicator(color: PartyColors.accentPink),
+          );
+        final docs = snapshot.data!.docs;
+
+        if (docs.isEmpty) {
+          return const Center(
+            child: Text(
+              "No friends yet.",
+              style: TextStyle(color: Colors.white38),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: docs.length,
+          padding: const EdgeInsets.all(16),
+          itemBuilder: (context, i) {
+            final data = docs[i].data() as Map<String, dynamic>;
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                backgroundColor: Colors.white10,
+                child: Text(
+                  data['username'][0].toUpperCase(),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              title: Text(
+                data['username'],
+                style: const TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                data['email'] ?? "",
+                style: const TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.person_remove, color: Colors.redAccent),
+                onPressed: () => AuthService().removeFriend(docs[i].id),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// 2. REQUESTS TAB
+class _RequestsListTab extends StatelessWidget {
+  const _RequestsListTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: AuthService().getRequestsStream(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData)
+          return const Center(
+            child: CircularProgressIndicator(color: PartyColors.accentPink),
+          );
+        final docs = snapshot.data!.docs;
+
+        if (docs.isEmpty) {
+          return const Center(
+            child: Text(
+              "No pending requests.",
+              style: TextStyle(color: Colors.white38),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: docs.length,
+          padding: const EdgeInsets.all(16),
+          itemBuilder: (context, i) {
+            final data = docs[i].data() as Map<String, dynamic>;
+            return Card(
+              color: Colors.white10,
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ListTile(
+                title: Text(
+                  data['username'],
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: const Text(
+                  "Wants to be friends",
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.redAccent),
+                      onPressed: () =>
+                          AuthService().rejectFriendRequest(docs[i].id),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.check, color: Colors.greenAccent),
+                      onPressed: () => AuthService().acceptFriendRequest(
+                        docs[i].id,
+                        data['username'],
+                        data['email'],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// 3. SEARCH TAB
+class _SearchUsersTab extends StatefulWidget {
+  const _SearchUsersTab();
+
+  @override
+  State<_SearchUsersTab> createState() => _SearchUsersTabState();
+}
+
+class _SearchUsersTabState extends State<_SearchUsersTab> {
+  final _searchCtrl = TextEditingController();
+  List<Map<String, dynamic>> _results = [];
+  bool _loading = false;
+
+  Future<void> _doSearch() async {
+    if (_searchCtrl.text.trim().isEmpty) return;
+    setState(() {
+      _loading = true;
+    });
+
+    // Close keyboard
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    final res = await AuthService().searchUsers(_searchCtrl.text.trim());
+
+    if (mounted) {
+      setState(() {
+        _results = res;
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: "Search username or email...",
+                    hintStyle: const TextStyle(color: Colors.white38),
+                    filled: true,
+                    fillColor: Colors.white10,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onSubmitted: (_) => _doSearch(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _loading ? null : _doSearch,
+                style: IconButton.styleFrom(
+                  backgroundColor: PartyColors.accentPink,
+                ),
+                icon: _loading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.search, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+
+        Expanded(
+          child: _loading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: PartyColors.accentPink,
+                  ),
+                )
+              : _results.isEmpty
+              ? const Center(
+                  child: Text(
+                    "Enter a name to search",
+                    style: TextStyle(color: Colors.white38),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _results.length,
+                  itemBuilder: (context, i) {
+                    final user = _results[i];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.white10,
+                        child: Text(
+                          user['username'][0].toUpperCase(),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      title: Text(
+                        user['username'],
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      subtitle: Text(
+                        user['email'],
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: PartyColors.accentCyan,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 0,
+                          ),
+                          minimumSize: const Size(60, 30),
+                        ),
+                        onPressed: () async {
+                          final msg = await AuthService().sendFriendRequest(
+                            user['uid'],
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text(msg)));
+                          }
+                        },
+                        child: const Text(
+                          "Add",
+                          style: TextStyle(color: Colors.black, fontSize: 12),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// HELPER WIDGETS
 // -----------------------------------------------------------------------------
 
 class _ProfileHeader extends StatelessWidget {
@@ -342,13 +735,13 @@ class _ProfileHeader extends StatelessWidget {
 
 class _StatsRow extends StatelessWidget {
   final int games;
-  final int friends;
-  final int days;
+  final int wins;
+  final int streak;
 
   const _StatsRow({
     required this.games,
-    required this.friends,
-    required this.days,
+    required this.wins,
+    required this.streak,
   });
 
   @override
@@ -362,13 +755,13 @@ class _StatsRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _StatItem(label: "Games", value: games.toString()),
-          _StatItem(
-            label: "Friends",
-            value: friends.toString(),
-            color: PartyColors.accentYellow,
-          ),
-          _StatItem(label: "Days Active", value: "$days 🔥"),
+          _StatItem(label: "Games Played", value: games.toString()),
+          // _StatItem(
+          //   label: "Wins",
+          //   value: wins.toString(),
+          //   color: PartyColors.accentYellow,
+          // ),
+          _StatItem(label: "Day Streak", value: "$streak 🔥"),
         ],
       ),
     );
@@ -468,19 +861,30 @@ class _ProUpgradeCard extends StatelessWidget {
 class _MenuSection extends StatelessWidget {
   final bool isGuest;
   final VoidCallback onLogout;
+  final VoidCallback onManageFriends;
 
-  const _MenuSection({required this.isGuest, required this.onLogout});
+  const _MenuSection({
+    required this.isGuest,
+    required this.onLogout,
+    required this.onManageFriends,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        if (!isGuest)
+        if (!isGuest) ...[
           _ProfileMenuItem(
             icon: Icons.history,
             title: "Game History",
             onTap: () => Navigator.pushNamed(context, "/history"),
           ),
+          _ProfileMenuItem(
+            icon: Icons.people_outline,
+            title: "Manage Friends",
+            onTap: onManageFriends,
+          ),
+        ],
         _ProfileMenuItem(
           icon: isGuest ? Icons.login : Icons.logout,
           title: isGuest ? "Log In" : "Log Out",

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // <--- ADDED
 import '../../auth/auth_service.dart'; // <--- ADDED
 import 'mr_white_models.dart';
-import 'mr_white_setup.dart';
+// import 'mr_white_setup.dart';
 import '../../core/safe_nav.dart';
 
 class MrWhiteScoreBoardScreen extends StatefulWidget {

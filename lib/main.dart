@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+// Screens
 import 'home/party_home_screen.dart';
 import 'home/login_screen.dart';
 import 'home/register_screen.dart';
 import 'profile/game_history_screen.dart';
+import 'services/game_cache_service.dart';
+import 'services/notification_permission_screen.dart';
+
+// Games
 import '../games/mr_white/mr_white_setup.dart';
 import '../games/mafia/mafia_setup.dart';
 import '../games/heads_up/heads_up_setup.dart';
@@ -14,9 +22,49 @@ import '../games/most_likely/most_likely_setup_screen.dart';
 import '../games/viral/viral_setup_screen.dart';
 import '../games/viral_or_flop/viral_or_flop_setup_screen.dart';
 
+// FIX 1: Define the Background Handler (MUST be top-level)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you're using FlutterFire, you must initialize Firebase here too
+  await Firebase.initializeApp();
+  print("Handling a background message: ${message.messageId}");
+}
+
+final FlutterLocalNotificationsPlugin localNotifications =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> setupNotificationChannel() async {
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    "joybox_default_channel",
+    "JoyBox Notifications",
+    description: "General notifications for JoyBox",
+    importance: Importance.high,
+  );
+
+  await localNotifications
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >()
+      ?.createNotificationChannel(channel);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // FIX 2: Register the background handler immediately
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Debugging Token
+  FirebaseMessaging.instance.getToken().then((token) {
+    print("MY_FCM_TOKEN: $token");
+  });
+
+  // ✅ START BACKGROUND SYNC
+  GameCacheService().syncAllGames();
+
+  await setupNotificationChannel();
+
   runApp(const PartyModeratorApp());
 }
 
@@ -30,10 +78,28 @@ class PartyModeratorApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
 
-      // ✅ OFFLINE-FIRST APPROACH:
-      // Always go to Home Screen.
-      // The Home Screen will decide if it shows "Guest" or "User" data.
-      home: const PartyHomeScreen(),
+      // ✅ UPDATED HOME LOGIC
+      home: FutureBuilder<bool>(
+        future: SharedPreferences.getInstance().then(
+          (prefs) => prefs.getBool("asked_notifications") ?? false,
+        ),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Scaffold(
+              backgroundColor: Color(0xFF1A1A2E),
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          // If we haven't asked yet, show the Permission Screen
+          if (snapshot.data == false) {
+            return const NotificationPermissionScreen();
+          }
+
+          // If we HAVE asked (regardless of allow/deny), go to Home
+          return const PartyHomeScreen();
+        },
+      ),
 
       routes: {
         "/login": (_) => const LoginScreen(),

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <--- ADDED
 
 import '../../settings/app_settings.dart';
 import 'most_likely_models.dart';
-import 'most_likely_packs.dart';
-import 'most_likely_settings_cache.dart';
+// import 'most_likely_packs.dart';
+// import 'most_likely_settings_cache.dart'; // <--- REMOVED
 import 'most_likely_game_screen.dart';
 
 class MostLikelySetupScreen extends StatefulWidget {
@@ -31,11 +32,101 @@ class _MostLikelySetupScreenState extends State<MostLikelySetupScreen> {
   MostLikelyEndCondition endCondition = MostLikelyEndCondition.manualStop;
   int totalRounds = 10;
 
+  bool _isLoading = true; // <--- To prevent UI jumping
+
   @override
   void initState() {
     super.initState();
-    _syncControllers();
-    _restoreFromCache();
+    _loadSettings(); // ✅ Load settings on start
+  }
+
+  // ✅ NEW: Load cached settings
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final adultEnabled = AppSettings.instance.adultEnabled;
+
+    setState(() {
+      // 1. Basic Settings
+      playerCount = prefs.getInt('ml_playerCount') ?? 4;
+      allowSelfVote = prefs.getBool('ml_allowSelfVote') ?? false;
+      totalRounds = prefs.getInt('ml_totalRounds') ?? 10;
+
+      // 2. Enums (Saved as Indices)
+      final vIndex = prefs.getInt('ml_votingMode') ?? 0;
+      if (vIndex < MostLikelyVotingMode.values.length) {
+        votingMode = MostLikelyVotingMode.values[vIndex];
+      }
+
+      final sIndex = prefs.getInt('ml_scoringMode') ?? 0;
+      if (sIndex < MostLikelyScoringMode.values.length) {
+        scoringMode = MostLikelyScoringMode.values[sIndex];
+      }
+
+      final pIndex = prefs.getInt('ml_punishmentMode') ?? 0;
+      if (pIndex < MostLikelyPunishmentMode.values.length) {
+        punishmentMode = MostLikelyPunishmentMode.values[pIndex];
+      }
+
+      final eIndex = prefs.getInt('ml_endCondition') ?? 0;
+      if (eIndex < MostLikelyEndCondition.values.length) {
+        endCondition = MostLikelyEndCondition.values[eIndex];
+      }
+
+      // 3. Restore Packs (Saved as List<String> of names)
+      final savedPackNames = prefs.getStringList('ml_selectedPacks');
+      if (savedPackNames != null) {
+        selectedPacks = savedPackNames
+            .map(
+              (name) => MostLikelyPack.values.firstWhere(
+                (e) => e.name == name,
+                orElse: () => MostLikelyPack.clean,
+              ),
+            )
+            .where(
+              (p) => adultEnabled ? true : !p.isAdult,
+            ) // Filter adult if disabled
+            .toSet() // Remove duplicates
+            .toList();
+      }
+      // Ensure at least one pack is selected
+      if (selectedPacks.isEmpty) selectedPacks = [MostLikelyPack.clean];
+
+      // 4. Restore Players
+      _syncControllers();
+      final cachedNames = prefs.getStringList('ml_playerNames') ?? [];
+      for (
+        int i = 0;
+        i < _nameControllers.length && i < cachedNames.length;
+        i++
+      ) {
+        _nameControllers[i].text = cachedNames[i];
+      }
+
+      _isLoading = false;
+    });
+  }
+
+  // ✅ NEW: Save settings before playing
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setInt('ml_playerCount', playerCount);
+    await prefs.setBool('ml_allowSelfVote', allowSelfVote);
+    await prefs.setInt('ml_totalRounds', totalRounds);
+
+    // Save Enum Indices
+    await prefs.setInt('ml_votingMode', votingMode.index);
+    await prefs.setInt('ml_scoringMode', scoringMode.index);
+    await prefs.setInt('ml_punishmentMode', punishmentMode.index);
+    await prefs.setInt('ml_endCondition', endCondition.index);
+
+    // Save Pack Names
+    final packNames = selectedPacks.map((p) => p.name).toList();
+    await prefs.setStringList('ml_selectedPacks', packNames);
+
+    // Save Player Names
+    final names = _nameControllers.map((c) => c.text.trim()).toList();
+    await prefs.setStringList('ml_playerNames', names);
   }
 
   void _syncControllers() {
@@ -47,70 +138,23 @@ class _MostLikelySetupScreenState extends State<MostLikelySetupScreen> {
     }
   }
 
-  void _restoreFromCache() {
-    final adultEnabled = AppSettings.instance.adultEnabled;
-
-    if (MostLikelySettingsCache.playerCount != null) {
-      final v = MostLikelySettingsCache.playerCount!;
-      if (v >= _minPlayers && v <= _maxPlayers) {
-        playerCount = v;
-      }
-    }
-
-    _syncControllers();
-
-    final cachedNames = MostLikelySettingsCache.playerNames;
-    if (cachedNames != null && cachedNames.isNotEmpty) {
-      for (
-        int i = 0;
-        i < _nameControllers.length && i < cachedNames.length;
-        i++
-      ) {
-        _nameControllers[i].text = cachedNames[i];
-      }
-    }
-
-    var cachedPacks = MostLikelySettingsCache.getCachedPacks();
-    if (!adultEnabled) {
-      cachedPacks = cachedPacks.where((p) => !p.isAdult).toList();
-    }
-    if (cachedPacks.isNotEmpty) selectedPacks = cachedPacks;
-
-    final vm = MostLikelySettingsCache.votingModeIndex;
-    final sm = MostLikelySettingsCache.scoringModeIndex;
-    final pm = MostLikelySettingsCache.punishmentModeIndex;
-
-    if (vm != null) votingMode = MostLikelyVotingMode.values[vm];
-    if (sm != null) scoringMode = MostLikelyScoringMode.values[sm];
-    if (pm != null) {
-      punishmentMode = MostLikelyPunishmentMode.values[pm];
-    }
-
-    allowSelfVote = MostLikelySettingsCache.allowSelfVote ?? false;
-
-    if (MostLikelySettingsCache.endCondition != null) {
-      endCondition = MostLikelySettingsCache.endCondition!;
-    }
-
-    if (MostLikelySettingsCache.totalRounds != null &&
-        MostLikelySettingsCache.totalRounds! > 0) {
-      totalRounds = MostLikelySettingsCache.totalRounds!;
-    }
-  }
-
-  void _startGame() {
+  Future<void> _startGame() async {
     final adultEnabled = AppSettings.instance.adultEnabled;
 
     final packsEffective = adultEnabled
         ? selectedPacks
         : selectedPacks.where((p) => !p.isAdult).toList();
 
-    // final names = List.generate(playerCount, (i) {
-    //   final t = _nameControllers[i].text.trim();
-    //   return t; // ✅ return t.isEmpty ? "Player ${i + 1}" : t;
-    // });
+    if (packsEffective.isEmpty) {
+      // Fallback if user somehow deselected everything
+      packsEffective.add(MostLikelyPack.clean);
+    }
+
+    // ✅ Save to Cache
+    await _saveSettings();
+
     final names = List.generate(playerCount, (i) {
-      return _nameControllers[i].text.trim(); // ✅ only real input saved
+      return _nameControllers[i].text.trim();
     });
 
     final config = MostLikelyGameConfig(
@@ -126,28 +170,23 @@ class _MostLikelySetupScreenState extends State<MostLikelySetupScreen> {
           : null,
     );
 
-    MostLikelySettingsCache.save(
-      playerCountValue: playerCount,
-      playerNamesValue: names,
-      packs: packsEffective,
-      votingMode: votingMode,
-      scoringMode: scoringMode,
-      punishmentMode: punishmentMode,
-      allowSelfVoteValue: allowSelfVote,
-      endConditionValue: endCondition,
-      totalRoundsValue: endCondition == MostLikelyEndCondition.fixedRounds
-          ? totalRounds
-          : null,
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => MostLikelyGameScreen(config: config)),
-    );
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => MostLikelyGameScreen(config: config)),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0F2027),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final adultEnabled = AppSettings.instance.adultEnabled;
 
     return Scaffold(
@@ -271,7 +310,7 @@ class _MostLikelySetupScreenState extends State<MostLikelySetupScreen> {
                                     style: TextStyle(
                                       color: selectedPacks.contains(pack)
                                           ? Colors.black
-                                          : Colors.white, // ✅ FIXED VISIBILITY
+                                          : Colors.white,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),

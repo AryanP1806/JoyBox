@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <--- ADDED
+
 import 'heads_up_models.dart';
 import 'heads_up_game.dart';
 import '../../settings/app_settings.dart';
@@ -13,6 +15,37 @@ class HeadsUpSetupScreen extends StatefulWidget {
 class _HeadsUpSetupScreenState extends State<HeadsUpSetupScreen> {
   HeadsUpPack _selectedPack = HeadsUpPack.values.first;
   double _durationSlider = 60;
+  bool _isLoading = true; // <--- To prevent UI jumping
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings(); // ✅ Load settings on start
+  }
+
+  // ✅ NEW: Load cached settings
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // Load Duration
+      _durationSlider = prefs.getDouble('heads_up_duration') ?? 60;
+
+      // Load Pack (by index)
+      final packIndex = prefs.getInt('heads_up_pack_index') ?? 0;
+      if (packIndex < HeadsUpPack.values.length) {
+        _selectedPack = HeadsUpPack.values[packIndex];
+      }
+
+      _isLoading = false;
+    });
+  }
+
+  // ✅ NEW: Save settings before playing
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('heads_up_duration', _durationSlider);
+    await prefs.setInt('heads_up_pack_index', _selectedPack.index);
+  }
 
   // ✅ SAFE DESCRIPTION FOR ANY ENUM
   String _getPackDescription(HeadsUpPack pack) {
@@ -59,6 +92,13 @@ class _HeadsUpSetupScreenState extends State<HeadsUpSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF141E30),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final durationInt = _durationSlider.round();
     final allowedPacks = HeadsUpPack.values.where((pack) {
       if (pack == HeadsUpPack.adult) {
@@ -195,18 +235,23 @@ class _HeadsUpSetupScreenState extends State<HeadsUpSetupScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 18),
                 child: GestureDetector(
-                  onTap: () {
+                  onTap: () async {
+                    // ✅ 1. Save Settings
+                    await _saveSettings();
+
                     final config = HeadsUpConfig(
                       pack: _selectedPack,
                       durationSeconds: durationInt,
                     );
 
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => HeadsUpGameScreen(config: config),
-                      ),
-                    );
+                    if (mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => HeadsUpGameScreen(config: config),
+                        ),
+                      );
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(

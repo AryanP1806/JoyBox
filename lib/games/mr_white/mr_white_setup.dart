@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/safe_nav.dart';
-import 'mr_white_settings_cache.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <--- ADDED
+// import '../../core/safe_nav.dart';
+// import 'mr_white_settings_cache.dart'; // <--- REMOVED
 
 import 'mr_white_models.dart';
 import 'mr_white_word_select.dart';
@@ -13,18 +14,90 @@ class MrWhiteSetupScreen extends StatefulWidget {
 }
 
 class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
-  // ✅ INITIAL VALUES COME FROM CACHE (IF AVAILABLE)
-  int playerCount = MrWhiteSettingsCache.playerCount ?? 3;
-  int specialCount = MrWhiteSettingsCache.specialCount ?? 1;
+  // ✅ Default Values
+  int playerCount = 3;
+  int specialCount = 1;
 
-  MrWhiteMode selectedMode = MrWhiteSettingsCache.mode ?? MrWhiteMode.mrWhite;
+  MrWhiteMode selectedMode = MrWhiteMode.mrWhite;
 
-  bool useCustomWords = MrWhiteSettingsCache.useCustomWords ?? false;
-  bool timerEnabled = MrWhiteSettingsCache.timerEnabled ?? false;
-  int timerSeconds = MrWhiteSettingsCache.timerSeconds ?? 60;
-  bool secretVoting = MrWhiteSettingsCache.secretVoting ?? false;
+  bool useCustomWords = false;
+  bool timerEnabled = false;
+  int timerSeconds = 60;
+  bool secretVoting = false;
 
   final List<TextEditingController> nameControllers = [];
+  bool _isLoading = true; // <--- To prevent UI jump
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings(); // ✅ Load settings on start
+  }
+
+  // ✅ NEW: Load cached settings
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      playerCount = prefs.getInt('mr_playerCount') ?? 3;
+      specialCount = prefs.getInt('mr_specialCount') ?? 1;
+
+      final modeIndex = prefs.getInt('mr_mode') ?? 0;
+      if (modeIndex < MrWhiteMode.values.length) {
+        selectedMode = MrWhiteMode.values[modeIndex];
+      }
+
+      useCustomWords = prefs.getBool('mr_useCustomWords') ?? false;
+      timerEnabled = prefs.getBool('mr_timerEnabled') ?? false;
+      timerSeconds = prefs.getInt('mr_timerSeconds') ?? 60;
+      secretVoting = prefs.getBool('mr_secretVoting') ?? false;
+
+      // Sync controllers first
+      updateControllers();
+
+      // Restore names
+      final cachedNames = prefs.getStringList('mr_playerNames') ?? [];
+      for (
+        int i = 0;
+        i < nameControllers.length && i < cachedNames.length;
+        i++
+      ) {
+        nameControllers[i].text = cachedNames[i];
+      }
+
+      _isLoading = false;
+    });
+  }
+
+  // ✅ NEW: Save settings before playing
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setInt('mr_playerCount', playerCount);
+    await prefs.setInt('mr_specialCount', specialCount);
+    await prefs.setInt('mr_mode', selectedMode.index);
+    await prefs.setBool('mr_useCustomWords', useCustomWords);
+    await prefs.setBool('mr_timerEnabled', timerEnabled);
+    await prefs.setInt('mr_timerSeconds', timerSeconds);
+    await prefs.setBool('mr_secretVoting', secretVoting);
+
+    // Save names
+    final names = nameControllers.map((c) => c.text).toList();
+    await prefs.setStringList('mr_playerNames', names);
+  }
+
+  void updateControllers() {
+    // ✅ When slider changes, preserve names when possible.
+    while (nameControllers.length > playerCount) {
+      nameControllers.removeLast().dispose();
+    }
+    while (nameControllers.length < playerCount) {
+      nameControllers.add(TextEditingController());
+    }
+
+    if (specialCount >= playerCount) {
+      specialCount = 1;
+    }
+  }
 
   // ✅ HOW TO PLAY
   void _showHowToPlay() {
@@ -65,40 +138,7 @@ class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _initControllersFromCache();
-  }
-
-  void _initControllersFromCache() {
-    final cachedNames = MrWhiteSettingsCache.playerNames;
-
-    // No existing controllers yet, so no leaks here.
-    for (int i = 0; i < playerCount; i++) {
-      final c = TextEditingController();
-      if (cachedNames != null && i < cachedNames.length) {
-        c.text = cachedNames[i];
-      }
-      nameControllers.add(c);
-    }
-  }
-
-  void updateControllers() {
-    // ✅ When slider changes, preserve names when possible.
-    while (nameControllers.length > playerCount) {
-      nameControllers.removeLast().dispose();
-    }
-    while (nameControllers.length < playerCount) {
-      nameControllers.add(TextEditingController());
-    }
-
-    if (specialCount >= playerCount) {
-      specialCount = 1;
-    }
-  }
-
-  void startGame() {
+  Future<void> startGame() async {
     final names = <String>[];
 
     for (int i = 0; i < nameControllers.length; i++) {
@@ -106,17 +146,8 @@ class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
       names.add(text.isEmpty ? "Player ${i + 1}" : text);
     }
 
-    // ✅ SAVE CURRENT SETTINGS TO CACHE (SO NEXT TIME SETUP RESTORES THEM)
-    MrWhiteSettingsCache.save(
-      playerCount: playerCount,
-      specialCount: specialCount,
-      mode: selectedMode,
-      useCustomWords: useCustomWords,
-      timerEnabled: timerEnabled,
-      timerSeconds: timerSeconds,
-      secretVoting: secretVoting,
-      playerNames: names,
-    );
+    // ✅ SAVE CURRENT SETTINGS TO CACHE
+    await _saveSettings();
 
     final config = MrWhiteGameConfig(
       playerCount: playerCount,
@@ -130,12 +161,14 @@ class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
       customWords: const [],
     );
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MrWhiteWordSelectScreen(config: config),
-      ),
-    );
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MrWhiteWordSelectScreen(config: config),
+        ),
+      );
+    }
   }
 
   @override
@@ -148,6 +181,13 @@ class _MrWhiteSetupScreenState extends State<MrWhiteSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF000428),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(

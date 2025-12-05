@@ -1,6 +1,7 @@
 // lib/games/assassin/assassin_setup_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <--- ADDED
 
 import '../../core/safe_nav.dart';
 import '../../theme/party_theme.dart';
@@ -33,6 +34,101 @@ class _AssassinSetupScreenState extends State<AssassinSetupScreen> {
   int _timerSeconds = 60;
 
   final List<TextEditingController> _nameControllers = [];
+  bool _isLoading = true; // To prevent UI jump while loading prefs
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings(); // ✅ Load Cached Settings on Init
+  }
+
+  // ✅ NEW: Load settings from Cache or Play Again config
+  Future<void> _loadSettings() async {
+    final last = widget.lastConfig;
+
+    if (last != null) {
+      // 1. Priority: "Play Again" data
+      _applyConfig(last);
+    } else {
+      // 2. Fallback: Load from Local Storage (Offline Persistence)
+      final prefs = await SharedPreferences.getInstance();
+
+      setState(() {
+        _playerCount = prefs.getInt('assassin_playerCount') ?? 6;
+        _assassinCount = prefs.getInt('assassin_assassinCount') ?? 1;
+        _detectiveCount = prefs.getInt('assassin_detectiveCount') ?? 1;
+        _backgroundMusic = prefs.getBool('assassin_bgMusic') ?? true;
+        _timerEnabled = prefs.getBool('assassin_timerEnabled') ?? true;
+        _timerSeconds = prefs.getInt('assassin_timerSeconds') ?? 60;
+
+        // Sync controllers first to ensure list size is correct
+        _syncControllers();
+
+        // Restore Names
+        final savedNames = prefs.getStringList('assassin_playerNames') ?? [];
+        for (
+          var i = 0;
+          i < _nameControllers.length && i < savedNames.length;
+          i++
+        ) {
+          _nameControllers[i].text = savedNames[i];
+        }
+      });
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  void _applyConfig(AssassinGameConfig config) {
+    setState(() {
+      _playerCount = config.playerCount;
+      _assassinCount = config.assassinCount;
+      _detectiveCount = config.detectiveCount;
+      _backgroundMusic = config.backgroundMusic;
+      _timerEnabled = config.timerEnabled;
+      _timerSeconds = config.timerSeconds.clamp(15, 180);
+
+      _syncControllers();
+
+      for (
+        var i = 0;
+        i < _nameControllers.length && i < config.playerNames.length;
+        i++
+      ) {
+        _nameControllers[i].text = config.playerNames[i];
+      }
+    });
+  }
+
+  // ✅ NEW: Save settings to Local Storage
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setInt('assassin_playerCount', _playerCount);
+    await prefs.setInt('assassin_assassinCount', _assassinCount);
+    await prefs.setInt('assassin_detectiveCount', _detectiveCount);
+    await prefs.setBool('assassin_bgMusic', _backgroundMusic);
+    await prefs.setBool('assassin_timerEnabled', _timerEnabled);
+    await prefs.setInt('assassin_timerSeconds', _timerSeconds);
+
+    // Save Names
+    final names = _nameControllers.map((c) => c.text).toList();
+    await prefs.setStringList('assassin_playerNames', names);
+  }
+
+  void _syncControllers() {
+    // Grow or Shrink controller list to match player count
+    while (_nameControllers.length > _playerCount) {
+      _nameControllers.removeLast().dispose();
+    }
+    while (_nameControllers.length < _playerCount) {
+      _nameControllers.add(TextEditingController());
+    }
+
+    // Safety checks for logic
+    if (_assassinCount >= _playerCount) _assassinCount = 1;
+    if (_detectiveCount >= _playerCount) _detectiveCount = 1;
+  }
 
   void _showHowToPlay() {
     showDialog(
@@ -64,47 +160,6 @@ class _AssassinSetupScreenState extends State<AssassinSetupScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-
-    // ✅ If we came from "PLAY AGAIN", restore previous settings
-    final last = widget.lastConfig;
-    if (last != null) {
-      _playerCount = last.playerCount;
-      _assassinCount = last.assassinCount;
-      _detectiveCount = last.detectiveCount;
-      _backgroundMusic = last.backgroundMusic;
-      _timerEnabled = last.timerEnabled;
-      _timerSeconds = last.timerSeconds.clamp(15, 180);
-    }
-
-    _syncControllers();
-
-    // ✅ Restore player names AFTER controllers exist
-    if (last != null) {
-      for (
-        var i = 0;
-        i < _nameControllers.length && i < last.playerNames.length;
-        i++
-      ) {
-        _nameControllers[i].text = last.playerNames[i];
-      }
-    }
-  }
-
-  void _syncControllers() {
-    while (_nameControllers.length > _playerCount) {
-      _nameControllers.removeLast().dispose();
-    }
-    while (_nameControllers.length < _playerCount) {
-      _nameControllers.add(TextEditingController());
-    }
-
-    if (_assassinCount >= _playerCount) _assassinCount = 1;
-    if (_detectiveCount >= _playerCount) _detectiveCount = 1;
-  }
-
-  @override
   void dispose() {
     for (final c in _nameControllers) {
       c.dispose();
@@ -127,6 +182,9 @@ class _AssassinSetupScreenState extends State<AssassinSetupScreen> {
       return;
     }
 
+    // ✅ Cache settings before starting
+    _saveSettings();
+
     final names = List.generate(_playerCount, (i) {
       final txt = _nameControllers[i].text.trim();
       return txt.isEmpty ? 'Player ${i + 1}' : txt;
@@ -147,6 +205,13 @@ class _AssassinSetupScreenState extends State<AssassinSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: PartyColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: PartyColors.background,
       body: Container(
