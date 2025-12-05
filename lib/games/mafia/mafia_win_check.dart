@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <--- ADDED
 
 import '../../theme/party_theme.dart';
 import '../../widgets/party_button.dart';
 import '../../widgets/party_card.dart';
 import '../../core/safe_nav.dart';
+import '../../auth/auth_service.dart'; // <--- ADDED
 import 'mafia_settings_cache.dart';
 import 'mafia_models.dart';
 import 'mafia_kill_screen.dart';
@@ -32,7 +34,6 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
   void initState() {
     super.initState();
 
-    // ✅ Basic safety: if somehow empty, just bail out in build()
     aliveMafia = widget.players
         .where((p) => p.isAlive && p.role == MafiaRole.mafia)
         .length;
@@ -52,10 +53,40 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
-    // ✅ PLAY WIN SOUND ONLY IF GAME ENDED
     if (winnerText != null) {
       _player.play(AssetSource('sounds/win.mp3'));
+
+      // ✅ TRIGGER SAVE WHEN GAME ENDS
+      _saveGame();
     }
+  }
+
+  // ✅ NEW: Save Logic
+  Future<void> _saveGame() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final bool civiliansWon = winnerText == "CIVILIANS WIN";
+
+    // Count stats
+    final totalPlayers = widget.players.length;
+    final survivors = widget.players.where((p) => p.isAlive).length;
+    final deadCount = totalPlayers - survivors;
+
+    await AuthService().addGameHistory(
+      gameName: "Mafia",
+      won:
+          civiliansWon, // You count as "winning" if Civilians win (co-op style)
+      details: {
+        "winner": civiliansWon ? "Civilians" : "Mafia",
+        "total_players": totalPlayers,
+        "survivors": survivors,
+        "casualties": deadCount,
+        "mafia_alive": aliveMafia,
+      },
+    );
+
+    await AuthService().updateGameStats(won: civiliansWon);
   }
 
   @override
@@ -67,7 +98,6 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Hard safety: if something went wrong and list is empty, go home
     if (widget.players.isEmpty) {
       SafeNav.goHome(context);
       return const SizedBox.shrink();
@@ -138,15 +168,7 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
                     text: "BACK TO HOME",
                     gradient: PartyGradients.truth,
                     onTap: () {
-                      // SafeNav.goHome(context);
                       Navigator.pop(context);
-                      // Navigator.pushAndRemoveUntil(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //     builder: (_) => const MafiaSetupScreen(),
-                      //   ),
-                      //   (route) => false,
-                      // );
                     },
                   ),
                 ],
@@ -178,7 +200,6 @@ class _MafiaWinCheckScreenState extends State<MafiaWinCheckScreen>
                         (p) => p.role == MafiaRole.detective,
                       );
 
-                      // ✅ pull options from cache, fall back to sensible defaults
                       final secretVoting =
                           MafiaSettingsCache.secretVoting ?? false;
                       final timerEnabled =

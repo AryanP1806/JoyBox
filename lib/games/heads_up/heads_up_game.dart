@@ -10,6 +10,8 @@ import '../../widgets/pulse_timer_text.dart';
 import 'heads_up_models.dart';
 import 'heads_up_results.dart';
 import '../../settings/app_settings.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <--- Add this
+import '../../auth/auth_service.dart'; // <--- Add this
 
 enum HeadsUpTilt { neutral, correct, pass }
 
@@ -216,10 +218,37 @@ class _HeadsUpGameScreenState extends State<HeadsUpGameScreen>
     });
   }
 
+  // ✅ NEW: Save Game Logic
+  Future<void> _saveGame() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return; // Guest mode = no save
+
+    // Define what counts as a "win" (e.g., Score > 5)
+    final bool isWin = _score >= 5;
+
+    // Save History
+    await AuthService().addGameHistory(
+      gameName: "Heads Up: ${widget.config.pack.label}",
+      won: isWin,
+      details: {
+        "score": _score,
+        "correct": _correctWords.length,
+        "passed": _passedWords.length,
+        "streak": _score, // Or calculate max streak if you track it separately
+        "pack": widget.config.pack.label,
+        "duration": widget.config.durationSeconds,
+      },
+    );
+
+    // Update Profile Stats
+    await AuthService().updateGameStats(won: isWin);
+  }
+
   void _endGame() {
     _timer?.cancel();
     _accelSub?.cancel();
 
+    _saveGame();
     // Reset orientation
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
 

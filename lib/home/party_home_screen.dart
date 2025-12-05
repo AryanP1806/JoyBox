@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:joybox/profile/profile.dart';
 import 'party_theme.dart'; // Ensure this points to your theme file
 import '../settings/settings_screen.dart'; // Uncomment if you have this file
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PartyHomeScreen extends StatefulWidget {
   const PartyHomeScreen({super.key});
@@ -20,7 +22,7 @@ class _PartyHomeScreenState extends State<PartyHomeScreen> {
       icon: Icons.bookmark_border,
     ), // Index 1: Saved
     const SettingsScreen(), // Index 2: Settings (Updated)
-    const _ProfileView(), // Index 3: Profile
+    const ProfileTab(), // Index 3: Profile
   ];
 
   void _onTabTapped(int index) {
@@ -260,178 +262,186 @@ class _HomeView extends StatelessWidget {
 // 2. PROFILE VIEW (Integrated directly here)
 // ==============================================================================
 
-class _ProfileView extends StatelessWidget {
-  const _ProfileView();
+// class _ProfileView extends StatelessWidget {
+//   const _ProfileView();
 
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        child: Column(
-          children: [
-            // Custom Top Bar for Profile
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    // Edit Profile logic
-                  },
-                  icon: const Icon(Icons.edit, color: PartyColors.accentCyan),
-                ),
-              ],
-            ),
-            const _ProfileHeader(),
-            const SizedBox(height: 24),
-            const _StatsRow(),
-            const SizedBox(height: 24),
-            const _ProUpgradeCard(),
-            const SizedBox(height: 24),
-            const _MenuSection(),
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return SafeArea(
+//       child: SingleChildScrollView(
+//         padding: const EdgeInsets.symmetric(horizontal: 18),
+//         child: Column(
+//           children: [
+//             // Custom Top Bar for Profile
+//             Row(
+//               mainAxisAlignment: MainAxisAlignment.end,
+//               children: [
+//                 IconButton(
+//                   onPressed: () {
+//                     // Edit Profile logic
+//                   },
+//                   icon: const Icon(Icons.edit, color: PartyColors.accentCyan),
+//                 ),
+//               ],
+//             ),
+//             const _ProfileHeader(),
+//             const SizedBox(height: 24),
+//             const _StatsRow(),
+//             const SizedBox(height: 24),
+//             const _ProUpgradeCard(),
+//             const SizedBox(height: 24),
+//             const _MenuSection(),
+//             const SizedBox(height: 40),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 // ==============================================================================
 // 3. SETTINGS VIEW (Integrated)
 // ==============================================================================
 
-class _SettingsView extends StatefulWidget {
-  const _SettingsView();
+// class _SettingsView extends StatefulWidget {
+//   const _SettingsView();
 
-  @override
-  State<_SettingsView> createState() => _SettingsViewState();
-}
+//   @override
+//   State<_SettingsView> createState() => _SettingsViewState();
+// }
 
-class _SettingsViewState extends State<_SettingsView> {
-  // Using a local mock since AppSettings isn't in this file context
-  final _AppSettings settings = _AppSettings.instance;
+// class _SettingsViewState extends State<_SettingsView> {
+//   // Using a local mock since AppSettings isn't in this file context
+//   final _AppSettings settings = _AppSettings.instance;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: PartyColors.background,
-      appBar: AppBar(
-        title: const Text(
-          "Settings",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: PartyColors.background,
-        elevation: 0,
-        centerTitle: true,
-        automaticallyImplyLeading: false, // Don't show back button in tabs
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _buildToggle(
-              title: "Sound Effects",
-              value: settings.soundEnabled,
-              onChanged: () {
-                setState(() => settings.toggleSound());
-              },
-            ),
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       backgroundColor: PartyColors.background,
+//       appBar: AppBar(
+//         title: const Text(
+//           "Settings",
+//           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+//         ),
+//         backgroundColor: PartyColors.background,
+//         elevation: 0,
+//         centerTitle: true,
+//         automaticallyImplyLeading: false, // Don't show back button in tabs
+//       ),
+//       body: Padding(
+//         padding: const EdgeInsets.all(20),
+//         child: Column(
+//           children: [
+//             _buildToggle(
+//               title: "Sound Effects",
+//               value: settings.soundEnabled,
+//               onChanged: () {
+//                 setState(() => settings.toggleSound());
+//               },
+//             ),
 
-            const SizedBox(height: 20),
+//             const SizedBox(height: 20),
 
-            _buildToggle(
-              title: "Vibration",
-              value: settings.vibrationEnabled,
-              onChanged: () {
-                setState(() => settings.toggleVibration());
-              },
-            ),
+//             _buildToggle(
+//               title: "Vibration",
+//               value: settings.vibrationEnabled,
+//               onChanged: () {
+//                 setState(() => settings.toggleVibration());
+//               },
+//             ),
 
-            const SizedBox(height: 40),
+//             const SizedBox(height: 40),
 
-            _buildToggle(
-              title: "Adult Mode (18+)",
-              value: settings.adultEnabled,
-              onChanged: () {
-                setState(() => settings.toggleAdultMode());
-              },
-            ),
+//             _buildToggle(
+//               title: "Adult Mode (18+)",
+//               value: settings.adultEnabled,
+//               onChanged: () {
+//                 setState(() => settings.toggleAdultMode());
+//               },
+//             ),
 
-            const SizedBox(height: 24),
-            const Divider(color: PartyColors.textSecondary),
-            const SizedBox(height: 16),
+//             const SizedBox(height: 24),
+//             const Divider(color: PartyColors.textSecondary),
+//             const SizedBox(height: 16),
 
-            const Text(
-              "More settings coming soon...",
-              style: TextStyle(color: PartyColors.textSecondary),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+//             const Text(
+//               "More settings coming soon...",
+//               style: TextStyle(color: PartyColors.textSecondary),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
 
-  Widget _buildToggle({
-    required String title,
-    required bool value,
-    required VoidCallback onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-      decoration: BoxDecoration(
-        color: PartyColors.card,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: PartyColors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const Spacer(),
-          Switch(
-            value: value,
-            activeColor: PartyColors.accentPink,
-            activeTrackColor: PartyColors.accentPink.withOpacity(0.5),
-            inactiveThumbColor: Colors.grey,
-            inactiveTrackColor: Colors.grey.withOpacity(0.3),
-            onChanged: (_) => onChanged(),
-          ),
-        ],
-      ),
-    );
-  }
-}
+//   Widget _buildToggle({
+//     required String title,
+//     required bool value,
+//     required VoidCallback onChanged,
+//   }) {
+//     return Container(
+//       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+//       decoration: BoxDecoration(
+//         color: PartyColors.card,
+//         borderRadius: BorderRadius.circular(16),
+//       ),
+//       child: Row(
+//         children: [
+//           Text(
+//             title,
+//             style: const TextStyle(
+//               color: PartyColors.textPrimary,
+//               fontSize: 16,
+//               fontWeight: FontWeight.w600,
+//             ),
+//           ),
+//           const Spacer(),
+//           Switch(
+//             value: value,
+//             activeColor: PartyColors.accentPink,
+//             activeTrackColor: PartyColors.accentPink.withOpacity(0.5),
+//             inactiveThumbColor: Colors.grey,
+//             inactiveTrackColor: Colors.grey.withOpacity(0.3),
+//             onChanged: (_) => onChanged(),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
-// Simple Mock for AppSettings to make the code functional without external files
-class _AppSettings {
-  static final _AppSettings instance = _AppSettings._();
-  _AppSettings._();
+// // Simple Mock for AppSettings to make the code functional without external files
+// class _AppSettings {
+//   static final _AppSettings instance = _AppSettings._();
+//   _AppSettings._();
 
-  bool soundEnabled = true;
-  bool vibrationEnabled = true;
-  bool adultEnabled = false;
+//   bool soundEnabled = true;
+//   bool vibrationEnabled = true;
+//   bool adultEnabled = false;
 
-  void toggleSound() => soundEnabled = !soundEnabled;
-  void toggleVibration() => vibrationEnabled = !vibrationEnabled;
-  void toggleAdultMode() => adultEnabled = !adultEnabled;
-}
+//   void toggleSound() => soundEnabled = !soundEnabled;
+//   void toggleVibration() => vibrationEnabled = !vibrationEnabled;
+//   void toggleAdultMode() => adultEnabled = !adultEnabled;
+// }
 
 // ==============================================================================
 // 4. HELPER WIDGETS
 // ==============================================================================
 
 /// TOP AREA: Logo + mode toggle
+// REPLACE YOUR _Header CLASS WITH THIS:
+
 class _Header extends StatelessWidget {
   const _Header();
 
   @override
   Widget build(BuildContext context) {
+    // Get current user
+    final user = FirebaseAuth.instance.currentUser;
+    // Use displayName if available, otherwise use email, otherwise "Guest"
+    final String displayName =
+        user?.displayName ?? user?.email?.split('@')[0] ?? "Player";
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Row(
@@ -450,7 +460,7 @@ class _Header extends StatelessWidget {
                   shadows: [
                     Shadow(
                       blurRadius: 12,
-                      color: PartyColors.accentYellow.withValues(alpha: 0.7),
+                      color: PartyColors.accentYellow.withOpacity(0.7),
                     ),
                   ],
                 ),
@@ -471,12 +481,12 @@ class _Header extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: const Row(
+            child: Row(
               children: [
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
-                  "Aryan Pore",
-                  style: TextStyle(
+                  displayName, // <--- NOW DYNAMIC
+                  style: const TextStyle(
                     color: PartyColors.textPrimary,
                     fontSize: 12,
                   ),
@@ -686,88 +696,88 @@ class _GameCard extends StatelessWidget {
 
 // --- PROFILE COMPONENTS ---
 
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
+// class _ProfileHeader extends StatelessWidget {
+//   const _ProfileHeader();
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: PartyColors.background,
-            ),
-            child: const CircleAvatar(
-              radius: 50,
-              backgroundColor: PartyColors.card,
-              child: Text(
-                "AP",
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          "Aryan Pore",
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          "@aryan_plays",
-          style: TextStyle(fontSize: 14, color: PartyColors.textSecondary),
-        ),
-      ],
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       children: [
+//         Container(
+//           padding: const EdgeInsets.all(4),
+//           decoration: const BoxDecoration(
+//             shape: BoxShape.circle,
+//             gradient: LinearGradient(
+//               colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+//               begin: Alignment.topLeft,
+//               end: Alignment.bottomRight,
+//             ),
+//           ),
+//           child: Container(
+//             padding: const EdgeInsets.all(4),
+//             decoration: const BoxDecoration(
+//               shape: BoxShape.circle,
+//               color: PartyColors.background,
+//             ),
+//             child: const CircleAvatar(
+//               radius: 50,
+//               backgroundColor: PartyColors.card,
+//               child: Text(
+//                 "AP",
+//                 style: TextStyle(
+//                   fontSize: 32,
+//                   fontWeight: FontWeight.bold,
+//                   color: Colors.white,
+//                 ),
+//               ),
+//             ),
+//           ),
+//         ),
+//         const SizedBox(height: 16),
+//         const Text(
+//           "Aryan Pore",
+//           style: TextStyle(
+//             fontSize: 24,
+//             fontWeight: FontWeight.w900,
+//             color: Colors.white,
+//           ),
+//         ),
+//         const SizedBox(height: 4),
+//         const Text(
+//           "@aryan_plays",
+//           style: TextStyle(fontSize: 14, color: PartyColors.textSecondary),
+//         ),
+//       ],
+//     );
+//   }
+// }
 
-class _StatsRow extends StatelessWidget {
-  const _StatsRow();
+// class _StatsRow extends StatelessWidget {
+//   const _StatsRow();
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      decoration: BoxDecoration(
-        color: PartyColors.card,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
-          _StatItem(label: "Games", value: "142"),
-          _StatItem(
-            label: "Wins",
-            value: "89",
-            color: PartyColors.accentYellow,
-          ),
-          _StatItem(label: "Streak", value: "5 🔥"),
-        ],
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Container(
+//       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+//       decoration: BoxDecoration(
+//         color: PartyColors.card,
+//         borderRadius: BorderRadius.circular(22),
+//       ),
+//       child: Row(
+//         mainAxisAlignment: MainAxisAlignment.spaceAround,
+//         children: const [
+//           _StatItem(label: "Games", value: "142"),
+//           _StatItem(
+//             label: "Wins",
+//             value: "89",
+//             color: PartyColors.accentYellow,
+//           ),
+//           _StatItem(label: "Streak", value: "5 🔥"),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 class _StatItem extends StatelessWidget {
   final String label;
@@ -802,183 +812,183 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-class _ProUpgradeCard extends StatelessWidget {
-  const _ProUpgradeCard();
+// class _ProUpgradeCard extends StatelessWidget {
+//   const _ProUpgradeCard();
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF4ECD), Color(0xFF2F80ED)],
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.star, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Get JOYBOX Pro",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Unlock all decks & remove ads.",
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: Colors.white),
-        ],
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Container(
+//       width: double.infinity,
+//       padding: const EdgeInsets.all(20),
+//       decoration: BoxDecoration(
+//         borderRadius: BorderRadius.circular(22),
+//         gradient: const LinearGradient(
+//           colors: [Color(0xFFFF4ECD), Color(0xFF2F80ED)],
+//         ),
+//       ),
+//       child: Row(
+//         children: [
+//           Container(
+//             padding: const EdgeInsets.all(10),
+//             decoration: BoxDecoration(
+//               color: Colors.white.withOpacity(0.2),
+//               shape: BoxShape.circle,
+//             ),
+//             child: const Icon(Icons.star, color: Colors.white, size: 24),
+//           ),
+//           const SizedBox(width: 16),
+//           Expanded(
+//             child: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 const Text(
+//                   "Get JOYBOX Pro",
+//                   style: TextStyle(
+//                     color: Colors.white,
+//                     fontWeight: FontWeight.bold,
+//                     fontSize: 16,
+//                   ),
+//                 ),
+//                 const SizedBox(height: 4),
+//                 Text(
+//                   "Unlock all decks & remove ads.",
+//                   style: TextStyle(
+//                     color: Colors.white.withOpacity(0.9),
+//                     fontSize: 12,
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ),
+//           const Icon(Icons.chevron_right, color: Colors.white),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
-class _MenuSection extends StatelessWidget {
-  const _MenuSection();
+// class _MenuSection extends StatelessWidget {
+//   const _MenuSection();
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _ProfileMenuItem(
-          icon: Icons.history,
-          title: "Game History",
-          onTap: () {},
-        ),
-        _ProfileMenuItem(
-          icon: Icons.favorite_border,
-          title: "Liked Packs",
-          onTap: () {},
-        ),
-        _ProfileMenuItem(
-          icon: Icons.people_outline,
-          title: "Friends",
-          badgeCount: 3,
-          onTap: () {},
-        ),
-        const SizedBox(height: 24),
-        _ProfileMenuItem(
-          icon: Icons.settings_outlined,
-          title: "Settings",
-          onTap: () {}, // Handled by bottom nav usually, but kept for logic
-        ),
-        _ProfileMenuItem(
-          icon: Icons.logout,
-          title: "Log Out",
-          isDestructive: true,
-          onTap: () {},
-        ),
-      ],
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       children: [
+//         _ProfileMenuItem(
+//           icon: Icons.history,
+//           title: "Game History",
+//           onTap: () {},
+//         ),
+//         _ProfileMenuItem(
+//           icon: Icons.favorite_border,
+//           title: "Liked Packs",
+//           onTap: () {},
+//         ),
+//         _ProfileMenuItem(
+//           icon: Icons.people_outline,
+//           title: "Friends",
+//           badgeCount: 3,
+//           onTap: () {},
+//         ),
+//         const SizedBox(height: 24),
+//         _ProfileMenuItem(
+//           icon: Icons.settings_outlined,
+//           title: "Settings",
+//           onTap: () {}, // Handled by bottom nav usually, but kept for logic
+//         ),
+//         _ProfileMenuItem(
+//           icon: Icons.logout,
+//           title: "Log Out",
+//           isDestructive: true,
+//           onTap: () {},
+//         ),
+//       ],
+//     );
+//   }
+// }
 
-class _ProfileMenuItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-  final bool isDestructive;
-  final int badgeCount;
+// class _ProfileMenuItem extends StatelessWidget {
+//   final IconData icon;
+//   final String title;
+//   final VoidCallback onTap;
+//   final bool isDestructive;
+//   final int badgeCount;
 
-  const _ProfileMenuItem({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.isDestructive = false,
-    this.badgeCount = 0,
-  });
+//   const _ProfileMenuItem({
+//     required this.icon,
+//     required this.title,
+//     required this.onTap,
+//     this.isDestructive = false,
+//     this.badgeCount = 0,
+//   });
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: PartyColors.card,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                color: isDestructive
-                    ? const Color(0xFFED4337)
-                    : PartyColors.textSecondary,
-                size: 22,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: isDestructive
-                        ? const Color(0xFFED4337)
-                        : PartyColors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (badgeCount > 0)
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: PartyColors.accentPink,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    "$badgeCount",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              Icon(
-                Icons.chevron_right,
-                color: PartyColors.textSecondary.withOpacity(0.5),
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: const EdgeInsets.only(bottom: 12),
+//       child: InkWell(
+//         onTap: onTap,
+//         borderRadius: BorderRadius.circular(16),
+//         child: Container(
+//           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+//           decoration: BoxDecoration(
+//             color: PartyColors.card,
+//             borderRadius: BorderRadius.circular(16),
+//           ),
+//           child: Row(
+//             children: [
+//               Icon(
+//                 icon,
+//                 color: isDestructive
+//                     ? const Color(0xFFED4337)
+//                     : PartyColors.textSecondary,
+//                 size: 22,
+//               ),
+//               const SizedBox(width: 16),
+//               Expanded(
+//                 child: Text(
+//                   title,
+//                   style: TextStyle(
+//                     color: isDestructive
+//                         ? const Color(0xFFED4337)
+//                         : PartyColors.textPrimary,
+//                     fontSize: 16,
+//                     fontWeight: FontWeight.w600,
+//                   ),
+//                 ),
+//               ),
+//               if (badgeCount > 0)
+//                 Container(
+//                   margin: const EdgeInsets.only(right: 8),
+//                   padding: const EdgeInsets.symmetric(
+//                     horizontal: 8,
+//                     vertical: 2,
+//                   ),
+//                   decoration: BoxDecoration(
+//                     color: PartyColors.accentPink,
+//                     borderRadius: BorderRadius.circular(99),
+//                   ),
+//                   child: Text(
+//                     "$badgeCount",
+//                     style: const TextStyle(
+//                       color: Colors.white,
+//                       fontSize: 10,
+//                       fontWeight: FontWeight.bold,
+//                     ),
+//                   ),
+//                 ),
+//               Icon(
+//                 Icons.chevron_right,
+//                 color: PartyColors.textSecondary.withOpacity(0.5),
+//                 size: 20,
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 // ==============================================================================
 // 4. SHARED & NAV COMPONENTS

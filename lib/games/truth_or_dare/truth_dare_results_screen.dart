@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <--- ADDED
+import '../../auth/auth_service.dart'; // <--- ADDED
 import '../../audio/sound_manager.dart';
 
 import '../../theme/party_theme.dart';
@@ -26,6 +28,34 @@ class _TruthDareResultsScreenState extends State<TruthDareResultsScreen> {
       duration: const Duration(seconds: 4),
     )..play();
     SoundManager.playWin();
+
+    // ✅ Trigger Save
+    _saveGame();
+  }
+
+  // ✅ NEW: Save Logic
+  Future<void> _saveGame() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || widget.players.isEmpty) return;
+
+    // 1. Sort to find winner
+    final sortedPlayers = [...widget.players]
+      ..sort((a, b) => b.score.compareTo(a.score));
+    final winner = sortedPlayers.first;
+
+    // 2. Save History
+    await AuthService().addGameHistory(
+      gameName: "Truth or Dare",
+      won: true, // Counts as a "win" for hosting/finishing the game
+      details: {
+        "winner": winner.name,
+        "top_score": winner.score,
+        "player_count": widget.players.length,
+      },
+    );
+
+    // 3. Update Stats
+    await AuthService().updateGameStats(won: true);
   }
 
   @override

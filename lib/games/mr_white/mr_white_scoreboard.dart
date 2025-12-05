@@ -1,5 +1,7 @@
 // lib/games/mr_white/mr_white_scoreboard.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <--- ADDED
+import '../../auth/auth_service.dart'; // <--- ADDED
 import 'mr_white_models.dart';
 import 'mr_white_setup.dart';
 import '../../core/safe_nav.dart';
@@ -26,6 +28,21 @@ class MrWhiteScoreBoardScreen extends StatefulWidget {
 class _MrWhiteScoreBoardScreenState extends State<MrWhiteScoreBoardScreen> {
   bool _scoresApplied = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Apply scores and save game when the screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scoresApplied) {
+        _applyScores();
+        _saveGame(); // <--- Trigger Save
+        setState(() {
+          _scoresApplied = true;
+        });
+      }
+    });
+  }
+
   String get winnerText {
     if (widget.mrWhiteGuessCorrect == true) {
       return "MR WHITE WINS BY GUESS!";
@@ -40,6 +57,30 @@ class _MrWhiteScoreBoardScreenState extends State<MrWhiteScoreBoardScreen> {
       return "CIVILIANS WIN!";
     }
     return "ROUND COMPLETE";
+  }
+
+  // ✅ NEW: Save Game Logic
+  Future<void> _saveGame() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Determine if Civilians won (User wins if Civilians win)
+    bool civiliansWonGame = false;
+    if (widget.mrWhiteGuessCorrect == false || widget.civiliansWon) {
+      civiliansWonGame = true;
+    }
+
+    await AuthService().addGameHistory(
+      gameName: "Mr. White",
+      won: civiliansWonGame,
+      details: {
+        "winner": civiliansWonGame ? "Civilians" : "Mr. White",
+        "win_reason": winnerText,
+        "player_count": widget.players.length,
+      },
+    );
+
+    await AuthService().updateGameStats(won: civiliansWonGame);
   }
 
   void _applyScores() {
@@ -61,12 +102,6 @@ class _MrWhiteScoreBoardScreenState extends State<MrWhiteScoreBoardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Make sure scores are only applied once
-    if (!_scoresApplied) {
-      _applyScores();
-      _scoresApplied = true;
-    }
-
     if (widget.players.isEmpty) {
       SafeNav.goHome(context);
       return const SizedBox.shrink();

@@ -2,12 +2,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <--- ADDED
 
 import '../../core/safe_nav.dart';
 import '../../theme/party_theme.dart';
 import '../../widgets/party_card.dart';
 import '../../widgets/party_button.dart';
 import '../../widgets/pulse_timer_text.dart';
+import '../../auth/auth_service.dart'; // <--- ADDED
 
 import 'assassin_models.dart';
 import 'assassin_results_screen.dart';
@@ -69,12 +71,55 @@ class _AssassinPlayScreenState extends State<AssassinPlayScreen> {
 
       if (_secondsLeft <= 0) {
         timer.cancel();
-        // When time runs out, civilians win (you can flip this rule if you want)
+        // When time runs out, civilians win
         _onWinner(AssassinWinner.civilians);
       } else {
         setState(() => _secondsLeft--);
       }
     });
+  }
+
+  // ✅ NEW: Save Game Logic
+  Future<void> _saveGame(AssassinWinner winner) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // 1. Find the key players
+    final detective = widget.players.firstWhere(
+      (p) => p.role == AssassinRole.detective,
+      orElse: () =>
+          AssassinPlayer(name: "Detective", role: AssassinRole.detective),
+    );
+
+    final assassin = widget.players.firstWhere(
+      (p) => p.role == AssassinRole.assassin,
+      orElse: () =>
+          AssassinPlayer(name: "Unknown", role: AssassinRole.assassin),
+    );
+
+    // 2. Determine "Win" status (Civilians winning = Game Won for the group)
+    final bool civiliansWon = winner == AssassinWinner.civilians;
+
+    // 3. Calculate actual duration played
+    final int durationPlayed = _timerEnabled
+        ? (widget.config.timerSeconds - _secondsLeft)
+        : 0;
+
+    // 4. Save to History
+    await AuthService().addGameHistory(
+      gameName: "Wink Assassin",
+      won: civiliansWon | !civiliansWon,
+      details: {
+        "winner": civiliansWon ? "Civilians" : "Assassin",
+        "detective": detective.name,
+        "assassin": assassin.name,
+        "player_count": widget.players.length,
+        "duration": durationPlayed,
+      },
+    );
+
+    // 5. Update Profile Stats
+    await AuthService().updateGameStats(won: civiliansWon);
   }
 
   @override
@@ -93,12 +138,15 @@ class _AssassinPlayScreenState extends State<AssassinPlayScreen> {
 
     _timer?.cancel();
 
+    // ✅ TRIGGER SAVE
+    _saveGame(winner);
+
     SafeNav.safeReplace(
       context,
       AssassinResultsScreen(
         players: widget.players,
         winner: winner,
-        config: widget.config, // ✅ pass config forward
+        config: widget.config,
       ),
     );
   }

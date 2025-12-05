@@ -33,4 +33,38 @@ class FirestoreService {
   Future<void> upgradeToPro(String uid) async {
     await _db.collection("users").doc(uid).update({"isPro": true});
   }
+
+  // ADD THIS TO FirestoreService class
+  Future<void> saveGameResult({
+    required String uid,
+    required String gameTitle,
+    required bool won,
+    required int currentStreak,
+  }) async {
+    // 1. Add to History Subcollection
+    await _db.collection("users").doc(uid).collection("history").add({
+      "game": gameTitle,
+      "won": won,
+      "streak": currentStreak,
+      "timestamp": FieldValue.serverTimestamp(), // Crucial for sorting
+    });
+
+    // 2. Update Aggregate Stats (Total games, wins, etc.)
+    final userRef = _db.collection("users").doc(uid);
+
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userRef);
+      if (!snapshot.exists) return;
+
+      final data = snapshot.data()!;
+      int games = (data['gamesPlayed'] ?? 0) + 1;
+      int wins = (data['wins'] ?? 0) + (won ? 1 : 0);
+
+      transaction.update(userRef, {
+        "gamesPlayed": games,
+        "wins": wins,
+        "streak": currentStreak, // Update current streak on profile
+      });
+    });
+  }
 }

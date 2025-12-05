@@ -1,27 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <--- ADDED
+import '../../auth/auth_service.dart'; // <--- ADDED
 
-class ViralOrFlopResultsScreen extends StatelessWidget {
+class ViralOrFlopResultsScreen extends StatefulWidget {
   final int finalStreak;
 
   const ViralOrFlopResultsScreen({super.key, required this.finalStreak});
 
+  @override
+  State<ViralOrFlopResultsScreen> createState() =>
+      _ViralOrFlopResultsScreenState();
+}
+
+class _ViralOrFlopResultsScreenState extends State<ViralOrFlopResultsScreen> {
   String get _rank {
-    if (finalStreak >= 7) return "💀 LEGEND";
-    if (finalStreak >= 5) return "🛡 IMMUNE BEAST";
-    if (finalStreak >= 3) return "🔥 HOT STREAK";
+    if (widget.finalStreak >= 7) return "💀 LEGEND";
+    if (widget.finalStreak >= 5) return "🛡 IMMUNE BEAST";
+    if (widget.finalStreak >= 3) return "🔥 HOT STREAK";
     return "🙂 ROOKIE";
   }
 
   String get _message {
-    if (finalStreak >= 7) {
+    if (widget.finalStreak >= 7) {
       return "Everyone else drinks tonight 😈";
-    } else if (finalStreak >= 5) {
+    } else if (widget.finalStreak >= 5) {
       return "You skipped punishment like a boss 🛡";
-    } else if (finalStreak >= 3) {
+    } else if (widget.finalStreak >= 3) {
       return "You're heating up 🔥";
     } else {
       return "Warm up round 😅";
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Trigger Save Logic on load
+    _saveGame();
+  }
+
+  // ✅ NEW: Save Logic
+  Future<void> _saveGame() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Logic: If you get a high enough streak (Immune Beast 5+),
+    // you "won" against the odds.
+    final bool isWin = widget.finalStreak >= 5;
+
+    await AuthService().addGameHistory(
+      gameName: "Viral or Flop",
+      won: isWin,
+      details: {
+        "streak": widget.finalStreak,
+        "rank": _rank,
+        "outcome": _message,
+      },
+    );
+
+    await AuthService().updateGameStats(won: isWin);
   }
 
   @override
@@ -83,7 +120,7 @@ class ViralOrFlopResultsScreen extends StatelessWidget {
                     ],
                   ),
                   child: Text(
-                    "🔥 FINAL STREAK: $finalStreak",
+                    "🔥 FINAL STREAK: ${widget.finalStreak}",
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

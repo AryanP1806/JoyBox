@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../auth/auth_service.dart';
-import 'party_home_screen.dart';
 import '../theme/party_theme.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -23,33 +22,38 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      // 1. Perform Login
       await AuthService().login(_emailCtrl.text.trim(), _passCtrl.text.trim());
 
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const PartyHomeScreen()),
-        );
+        // 2. CLOSE Login Screen to reveal Home Screen
+        Navigator.pop(context);
       }
     } catch (e) {
       setState(() => _error = e.toString());
     }
 
-    setState(() => _loading = false);
+    if (mounted) {
+      setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: PartyColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        // Shows a back button automatically since we "pushed" this screen
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Spacer(),
-
+              const SizedBox(height: 20),
               const Text(
                 "WELCOME BACK",
                 textAlign: TextAlign.center,
@@ -116,7 +120,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
-
               const Spacer(),
             ],
           ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <--- ADDED THIS
+import '../../auth/firestore_service.dart';
 
 class HeadsUpResultsScreen extends StatefulWidget {
   final int score;
@@ -37,7 +39,26 @@ class _HeadsUpResultsScreenState extends State<HeadsUpResultsScreen>
       curve: Curves.easeOutBack,
     );
     _scoreController.forward();
+
+    // ✅ FIXED: Calling the method properly
+    // _saveGame();
   }
+
+  // ✅ ADDED: The missing function to save data
+  // Future<void> _saveGame() async {
+  //   final user = FirebaseAuth.instance.currentUser;
+  //   if (user == null) return;
+
+  //   // Define what counts as a "win" (e.g., getting at least 5 words right)
+  //   final bool isWin = widget.score >= 5;
+
+  //   await FirestoreService().saveGameResult(
+  //     uid: user.uid,
+  //     gameTitle: "Heads Up: ${widget.packLabel}", // e.g., "Heads Up: Animals"
+  //     won: isWin,
+  //     currentStreak: widget.score, // Saving the score to history
+  //   );
+  // }
 
   @override
   void dispose() {
@@ -63,7 +84,7 @@ class _HeadsUpResultsScreenState extends State<HeadsUpResultsScreen>
             children: [
               const SizedBox(height: 14),
 
-              // ✅ TITLE
+              // TITLE
               const Text(
                 "ROUND COMPLETE",
                 style: TextStyle(
@@ -76,7 +97,7 @@ class _HeadsUpResultsScreenState extends State<HeadsUpResultsScreen>
 
               const SizedBox(height: 8),
 
-              // ✅ PACK + TIME
+              // PACK + TIME
               Text(
                 "${widget.packLabel.toUpperCase()} • ${widget.durationSeconds}s",
                 style: const TextStyle(color: Colors.white54),
@@ -84,7 +105,7 @@ class _HeadsUpResultsScreenState extends State<HeadsUpResultsScreen>
 
               const SizedBox(height: 30),
 
-              // ✅ ANIMATED SCORE
+              // ANIMATED SCORE
               ScaleTransition(
                 scale: _scoreAnim,
                 child: Container(
@@ -99,7 +120,7 @@ class _HeadsUpResultsScreenState extends State<HeadsUpResultsScreen>
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.cyanAccent.withValues(alpha: 0.8),
+                        color: Colors.cyanAccent.withOpacity(0.8),
                         blurRadius: 30,
                         spreadRadius: 2,
                       ),
@@ -118,7 +139,7 @@ class _HeadsUpResultsScreenState extends State<HeadsUpResultsScreen>
 
               const SizedBox(height: 30),
 
-              // ✅ RESULTS LIST
+              // RESULTS LIST
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -142,7 +163,7 @@ class _HeadsUpResultsScreenState extends State<HeadsUpResultsScreen>
 
               const SizedBox(height: 10),
 
-              // ✅ PLAY AGAIN BUTTON
+              // PLAY AGAIN BUTTON
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
                 child: ElevatedButton(
@@ -177,7 +198,7 @@ class _HeadsUpResultsScreenState extends State<HeadsUpResultsScreen>
     );
   }
 
-  // ✅ REUSABLE PANEL WIDGET
+  // REUSABLE PANEL WIDGET
   Widget _resultPanel({
     required String title,
     required Color color,
@@ -187,9 +208,9 @@ class _HeadsUpResultsScreenState extends State<HeadsUpResultsScreen>
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.4),
+          color: Colors.black.withOpacity(0.4),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.6), width: 1.2),
+          border: Border.all(color: color.withOpacity(0.6), width: 1.2),
         ),
         child: Column(
           children: [
@@ -221,7 +242,7 @@ class _HeadsUpResultsScreenState extends State<HeadsUpResultsScreen>
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.15),
+                                  color: color.withOpacity(0.15),
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(color: color),
                                 ),
