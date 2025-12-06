@@ -21,6 +21,7 @@ import '../games/assassin/assassin_setup_screen.dart';
 import '../games/most_likely/most_likely_setup_screen.dart';
 import '../games/viral/viral_setup_screen.dart';
 import '../games/viral_or_flop/viral_or_flop_setup_screen.dart';
+import '../games/quick_draw/quick_draw_setup.dart';
 
 // FIX 1: Define the Background Handler (MUST be top-level)
 @pragma('vm:entry-point')
@@ -113,6 +114,7 @@ class PartyModeratorApp extends StatelessWidget {
         '/mostLikely': (_) => const MostLikelySetupScreen(),
         '/ViralOrFlop': (_) => const ViralOrFlopSetupScreen(),
         '/Viral': (_) => const ViralScreen(),
+        '/quickDraw': (_) => const QuickDrawSetupScreen(),
       },
     );
   }

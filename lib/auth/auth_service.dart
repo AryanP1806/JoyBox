@@ -49,87 +49,134 @@ class AuthService {
   }
 
   // ✅ SEARCH USERS (By Username or Email)
+  // final _auth = FirebaseAuth.instance;
+  // final _db = FirebaseFirestore.instance;
+
+  // User? get currentUser => _auth.currentUser;
+
+  // ... (Keep register, login, logout, checkDailyLogin exactly as they were) ...
+  // [PASTE YOUR EXISTING REGISTER/LOGIN CODE HERE]
+
+  // ✅ SEARCH USERS
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
     final myUid = currentUser?.uid;
     if (myUid == null || query.isEmpty) return [];
 
-    final lowerQuery = query.toLowerCase();
+    try {
+      final lowerQuery = query.toLowerCase();
 
-    // 1. Try finding by exact email
-    final emailQuery = await _db
-        .collection("users")
-        .where("email", isEqualTo: lowerQuery)
-        .get();
+      // 1. Try email
+      final emailQuery = await _db
+          .collection("users")
+          .where("email", isEqualTo: lowerQuery)
+          .get();
 
-    if (emailQuery.docs.isNotEmpty) {
-      // Filter out self
-      return emailQuery.docs
+      if (emailQuery.docs.isNotEmpty) {
+        return emailQuery.docs
+            .where((doc) => doc.id != myUid)
+            .map((doc) => doc.data())
+            .toList();
+      }
+
+      // 2. Try Username
+      final usernameQuery = await _db
+          .collection("users")
+          .where("searchKey", isGreaterThanOrEqualTo: lowerQuery)
+          .where("searchKey", isLessThan: "${lowerQuery}z")
+          .limit(10)
+          .get();
+
+      return usernameQuery.docs
           .where((doc) => doc.id != myUid)
           .map((doc) => doc.data())
           .toList();
+    } catch (e) {
+      print("SEARCH ERROR: $e"); // Debug print
+      return [];
     }
-
-    // 2. Fallback: Search by Username prefix
-    // logic: searchKey >= query AND searchKey < query + 'z'
-    final usernameQuery = await _db
-        .collection("users")
-        .where("searchKey", isGreaterThanOrEqualTo: lowerQuery)
-        .where("searchKey", isLessThan: "${lowerQuery}z")
-        .limit(10)
-        .get();
-
-    return usernameQuery.docs
-        .where((doc) => doc.id != myUid)
-        .map((doc) => doc.data())
-        .toList();
   }
 
-  // ✅ SEND FRIEND REQUEST
+  // ✅ SEND REQUEST
   Future<String> sendFriendRequest(String targetUid) async {
     final user = currentUser;
     if (user == null) return "Not logged in";
 
-    // Check if already friends
-    final friendCheck = await _db
-        .collection("users")
-        .doc(user.uid)
-        .collection("friends")
-        .doc(targetUid)
-        .get();
+    try {
+      // Check existing friendship
+      final friendDoc = await _db
+          .collection("users")
+          .doc(user.uid)
+          .collection("friends")
+          .doc(targetUid)
+          .get();
 
-    if (friendCheck.exists) return "Already friends!";
+      if (friendDoc.exists) return "Already friends!";
 
-    // Check if request already sent
-    final reqCheck = await _db
-        .collection("users")
-        .doc(targetUid)
-        .collection("friend_requests")
-        .doc(user.uid)
-        .get();
+      // Check pending request
+      final reqDoc = await _db
+          .collection("users")
+          .doc(targetUid)
+          .collection("friend_requests")
+          .doc(user.uid)
+          .get();
 
-    if (reqCheck.exists) return "Request already sent!";
+      if (reqDoc.exists) return "Request already sent!";
 
-    // Get my details to send
-    final myProfile = await _db.collection("users").doc(user.uid).get();
-    final myData = myProfile.data()!;
+      final myProfile = await _db.collection("users").doc(user.uid).get();
+      final myData = myProfile.data()!;
 
-    // Write to TARGET'S 'friend_requests' collection
-    await _db
-        .collection("users")
-        .doc(targetUid)
-        .collection("friend_requests")
-        .doc(user.uid)
-        .set({
-          "uid": user.uid,
-          "username": myData['username'],
-          "email": myData['email'],
-          "timestamp": FieldValue.serverTimestamp(),
-        });
+      // Send Request
+      await _db
+          .collection("users")
+          .doc(targetUid)
+          .collection("friend_requests")
+          .doc(user.uid)
+          .set({
+            "uid": user.uid,
+            "username": myData['username'],
+            "email": myData['email'],
+            "timestamp": FieldValue.serverTimestamp(),
+          });
 
-    return "Request Sent!";
+      return "Request Sent!";
+    } catch (e) {
+      print("SEND REQ ERROR: $e");
+      return "Error sending request";
+    }
   }
 
-  // ✅ ACCEPT FRIEND REQUEST (Atomic Transaction)
+  // ✅ REMOVE FRIEND (Fixed with Batch)
+  Future<bool> removeFriend(String friendUid) async {
+    final user = currentUser;
+    if (user == null) return false;
+
+    try {
+      WriteBatch batch = _db.batch();
+
+      DocumentReference myRef = _db.collection("users").doc(user.uid);
+      DocumentReference theirRef = _db.collection("users").doc(friendUid);
+
+      // 1. Remove from MY friends
+      batch.delete(myRef.collection("friends").doc(friendUid));
+
+      // 2. Remove from THEIR friends
+      batch.delete(theirRef.collection("friends").doc(user.uid));
+
+      // 3. Decrement MY count
+      batch.update(myRef, {"friendsCount": FieldValue.increment(-1)});
+
+      // 4. Decrement THEIR count
+      batch.update(theirRef, {"friendsCount": FieldValue.increment(-1)});
+
+      await batch.commit();
+      return true;
+    } catch (e) {
+      print("REMOVE FRIEND ERROR: $e");
+      return false;
+    }
+  }
+
+  // ✅ ACCEPT REQUEST (Keep Transaction)
   Future<void> acceptFriendRequest(
     String requesterUid,
     String requesterName,
@@ -138,71 +185,59 @@ class AuthService {
     final user = currentUser;
     if (user == null) return;
 
-    final myRef = _db.collection("users").doc(user.uid);
-    final theirRef = _db.collection("users").doc(requesterUid);
+    try {
+      final myRef = _db.collection("users").doc(user.uid);
+      final theirRef = _db.collection("users").doc(requesterUid);
 
-    // Get my details for them
-    final myProfile = await myRef.get();
-    final myName = myProfile.data()?['username'] ?? "Unknown";
-    final myEmail = myProfile.data()?['email'] ?? "";
+      final myProfile = await myRef.get();
+      final myName = myProfile.data()?['username'] ?? "Unknown";
+      final myEmail = myProfile.data()?['email'] ?? "";
 
-    await _db.runTransaction((tx) async {
-      // 1. Add them to MY friends
-      tx.set(myRef.collection("friends").doc(requesterUid), {
-        "uid": requesterUid,
-        "username": requesterName,
-        "email": requesterEmail,
-        "since": FieldValue.serverTimestamp(),
+      await _db.runTransaction((tx) async {
+        // Add to My Friends
+        tx.set(myRef.collection("friends").doc(requesterUid), {
+          "uid": requesterUid,
+          "username": requesterName,
+          "email": requesterEmail,
+          "since": FieldValue.serverTimestamp(),
+        });
+
+        // Add to Their Friends
+        tx.set(theirRef.collection("friends").doc(user.uid), {
+          "uid": user.uid,
+          "username": myName,
+          "email": myEmail,
+          "since": FieldValue.serverTimestamp(),
+        });
+
+        // Delete Request
+        tx.delete(myRef.collection("friend_requests").doc(requesterUid));
+
+        // Increment Counts
+        tx.update(myRef, {"friendsCount": FieldValue.increment(1)});
+        tx.update(theirRef, {"friendsCount": FieldValue.increment(1)});
       });
-
-      // 2. Add ME to THEIR friends
-      tx.set(theirRef.collection("friends").doc(user.uid), {
-        "uid": user.uid,
-        "username": myName,
-        "email": myEmail,
-        "since": FieldValue.serverTimestamp(),
-      });
-
-      // 3. Delete the request
-      tx.delete(myRef.collection("friend_requests").doc(requesterUid));
-
-      // 4. Update Counts
-      tx.update(myRef, {"friendsCount": FieldValue.increment(1)});
-      tx.update(theirRef, {"friendsCount": FieldValue.increment(1)});
-    });
+    } catch (e) {
+      print("ACCEPT ERROR: $e");
+    }
   }
 
-  // ✅ REJECT REQUEST
   Future<void> rejectFriendRequest(String requesterUid) async {
     final user = currentUser;
     if (user == null) return;
-
-    await _db
-        .collection("users")
-        .doc(user.uid)
-        .collection("friend_requests")
-        .doc(requesterUid)
-        .delete();
+    try {
+      await _db
+          .collection("users")
+          .doc(user.uid)
+          .collection("friend_requests")
+          .doc(requesterUid)
+          .delete();
+    } catch (e) {
+      print("REJECT ERROR: $e");
+    }
   }
 
-  // ✅ REMOVE FRIEND (Bidirectional Removal)
-  Future<void> removeFriend(String friendUid) async {
-    final user = currentUser;
-    if (user == null) return;
-
-    final myRef = _db.collection("users").doc(user.uid);
-    final theirRef = _db.collection("users").doc(friendUid);
-
-    await _db.runTransaction((tx) async {
-      tx.delete(myRef.collection("friends").doc(friendUid));
-      tx.delete(theirRef.collection("friends").doc(user.uid));
-
-      tx.update(myRef, {"friendsCount": FieldValue.increment(-1)});
-      tx.update(theirRef, {"friendsCount": FieldValue.increment(-1)});
-    });
-  }
-
-  // ✅ STREAMS
+  // ... (Streams and other methods remain the same) ...
   Stream<QuerySnapshot> getFriendsStream() {
     return _db
         .collection("users")

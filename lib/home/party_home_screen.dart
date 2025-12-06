@@ -180,6 +180,16 @@ class _HomeView extends StatelessWidget {
                 //   onTap: () => Navigator.pushNamed(context, "/spy"),
                 // ),
                 _GameCard(
+                  title: "Quick Draw",
+                  description:
+                      "Everyone knows the location—except one. Can you spot the spy?",
+                  gradientStart: const Color(0xFFFF6B3D),
+                  gradientEnd: const Color(0xFFED4337),
+                  emoji: "🕵️",
+                  tag: "Social Deduction",
+                  onTap: () => Navigator.pushNamed(context, "/quickDraw"),
+                ),
+                _GameCard(
                   title: "Clash of Hits",
                   description:
                       "Guess which media item went viral based on its popularity score.",

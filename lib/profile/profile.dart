@@ -252,19 +252,55 @@ class _ProfileTabState extends State<ProfileTab> {
                             ),
                           ],
                         ),
-                        Row(
-                          children: [
-                            // Show request badge if needed (can implement listener later)
-                            const Text(
-                              "Manage",
-                              style: TextStyle(color: Colors.white54),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.chevron_right,
-                              color: Colors.white54,
-                            ),
-                          ],
+
+                        // ✅ UPDATED: Request Notification Badge
+                        StreamBuilder<QuerySnapshot>(
+                          stream: AuthService().getRequestsStream(),
+                          builder: (context, snapshot) {
+                            final bool hasRequests =
+                                snapshot.hasData &&
+                                snapshot.data!.docs.isNotEmpty;
+
+                            return Row(
+                              children: [
+                                if (hasRequests)
+                                  Container(
+                                    margin: const EdgeInsets.only(right: 8),
+                                    width: 10,
+                                    height: 10,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.redAccent,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.red,
+                                          blurRadius: 4,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                Text(
+                                  hasRequests ? "Review" : "Manage",
+                                  style: TextStyle(
+                                    color: hasRequests
+                                        ? Colors.white
+                                        : Colors.white54,
+                                    fontWeight: hasRequests
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: hasRequests
+                                      ? Colors.white
+                                      : Colors.white54,
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -367,14 +403,43 @@ class _FriendsBottomSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const TabBar(
+            TabBar(
               indicatorColor: PartyColors.accentPink,
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white38,
               tabs: [
-                Tab(text: "Friends"),
-                Tab(text: "Requests"),
-                Tab(text: "Search"),
+                const Tab(text: "Friends"),
+
+                // ✅ UPDATED: Dynamic Tab with Red Dot
+                StreamBuilder<QuerySnapshot>(
+                  stream: AuthService().getRequestsStream(),
+                  builder: (context, snapshot) {
+                    final bool hasRequests =
+                        snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+
+                    return Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text("Requests"),
+                          if (hasRequests) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.redAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                const Tab(text: "Search"),
               ],
             ),
             const Expanded(
@@ -441,7 +506,19 @@ class _FriendsListTab extends StatelessWidget {
               ),
               trailing: IconButton(
                 icon: const Icon(Icons.person_remove, color: Colors.redAccent),
-                onPressed: () => AuthService().removeFriend(docs[i].id),
+                onPressed: () async {
+                  bool success = await AuthService().removeFriend(docs[i].id);
+                  if (!success && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Failed to remove friend. Check internet.",
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
               ),
             );
           },
@@ -541,7 +618,6 @@ class _SearchUsersTabState extends State<_SearchUsersTab> {
       _loading = true;
     });
 
-    // Close keyboard
     FocusManager.instance.primaryFocus?.unfocus();
 
     final res = await AuthService().searchUsers(_searchCtrl.text.trim());
@@ -638,29 +714,19 @@ class _SearchUsersTabState extends State<_SearchUsersTab> {
                           fontSize: 12,
                         ),
                       ),
-                      trailing: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: PartyColors.accentCyan,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 0,
-                          ),
-                          minimumSize: const Size(60, 30),
-                        ),
-                        onPressed: () async {
+                      trailing: _AddFriendButton(
+                        uid: user['uid'],
+                        onAdd: (uid) async {
                           final msg = await AuthService().sendFriendRequest(
-                            user['uid'],
+                            uid,
                           );
+
                           if (context.mounted) {
                             ScaffoldMessenger.of(
                               context,
                             ).showSnackBar(SnackBar(content: Text(msg)));
                           }
                         },
-                        child: const Text(
-                          "Add",
-                          style: TextStyle(color: Colors.black, fontSize: 12),
-                        ),
                       ),
                     );
                   },
@@ -674,6 +740,74 @@ class _SearchUsersTabState extends State<_SearchUsersTab> {
 // -----------------------------------------------------------------------------
 // HELPER WIDGETS
 // -----------------------------------------------------------------------------
+class _AddFriendButton extends StatefulWidget {
+  final String uid;
+  final Function(String) onAdd;
+
+  const _AddFriendButton({required this.uid, required this.onAdd});
+
+  @override
+  State<_AddFriendButton> createState() => _AddFriendButtonState();
+}
+
+class _AddFriendButtonState extends State<_AddFriendButton> {
+  bool isSent = false;
+  bool isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSent) {
+      return const Padding(
+        padding: EdgeInsets.only(right: 8.0),
+        child: Text(
+          "Request Sent",
+          style: TextStyle(
+            color: Colors.greenAccent,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: PartyColors.accentCyan,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+        minimumSize: const Size(60, 30),
+      ),
+      onPressed: isLoading
+          ? null
+          : () async {
+              setState(() {
+                isLoading = true;
+              });
+
+              await widget.onAdd(widget.uid);
+
+              if (mounted) {
+                setState(() {
+                  isLoading = false;
+                  isSent = true;
+                });
+              }
+            },
+      child: isLoading
+          ? const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.black,
+              ),
+            )
+          : const Text(
+              "Add",
+              style: TextStyle(color: Colors.black, fontSize: 12),
+            ),
+    );
+  }
+}
 
 class _ProfileHeader extends StatelessWidget {
   final String username;
@@ -756,11 +890,6 @@ class _StatsRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _StatItem(label: "Games Played", value: games.toString()),
-          // _StatItem(
-          //   label: "Wins",
-          //   value: wins.toString(),
-          //   color: PartyColors.accentYellow,
-          // ),
           _StatItem(label: "Day Streak", value: "$streak 🔥"),
         ],
       ),
